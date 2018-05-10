@@ -1,7 +1,7 @@
 ---
-title: "Heritability of language and manual laterality: a twin study"
+title: "Negligible heritability of language and manual laterality: a twin study"
 author: "DVM Bishop"
-date: "08/05/2018"
+date: "10/05/2018"
 output: pdf_document
 ---
 
@@ -9,25 +9,32 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE,message = FALSE,warning=FALSE)
 
 require(yarrr)
-require(stargazer)
+require(stargazer) #Hlavac, Marek (2018). stargazer: Well-Formatted Regression and Summary Statistics Tables.
+# R package version 5.2.1. https://CRAN.R-project.org/package=stargazer 
 require(tidyverse)
-
+require(OpenMx)
+require(MASS)
+mxOption(NULL, 'Default optimizer', 'NPSOL')
+source('http://ibg.colorado.edu/cdrom2016/verhulst/Power/powerFun.R')
+#see http://www.people.vcu.edu/~bverhulst/power/powerScript.R
 ```
 ```{r readdata, echo=FALSE}
 #Read data before any text as need to refer to Ns etc computed here.
-#Version on 9 May has zygosity for one pair where it was coded 9
+#Version of redcap output from 9 May has zygosity for one pair where it had been wrongly coded 9
 mydir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/"
 myfile<-"TwinsData_DATA_2018-05-09_1021.csv"
 mydata<-read.csv(paste0(mydir,"Data/",myfile),stringsAsFactors = FALSE)
 w<-which(colnames(mydata)=='include')  #this relates to exclusion criteria re IQ,autism etc : not used here
 colnames(mydata)[w]<-'myinclude' #to avoid problems with having 'include' as column name
+```
 
+```{r converthanddata,echo=FALSE}
 #-------------------------------------------------------
-# Jitter values of QHP and EHP for plots
+# Created jittered values of QHP and EHP for plots
 #-------------------------------------------------------
 mydata$qhp_handedness<-mydata$qhp_freq_r+.5*mydata$qhp_freq_e
-mydata$ehp_jitter <-jitter(mydata$ehp_handedness)
-mydata$qhp_jitter <-jitter(mydata$qhp_handedness)
+mydata$ehp_jitter <-jitter(mydata$ehp_handedness,2) #last term 2 gives greater jitter than default
+mydata$qhp_jitter <-jitter(mydata$qhp_handedness,2)
 
 #-------------------------------------------------------
 # Create a variable that has categorical laterality for 2 handedness tasks and LI
@@ -41,6 +48,7 @@ mydata$taskssum<-0
 w<-which(mydata$qhp_handedness>10)
 mydata$taskssum[w]<-mydata$taskssum[w]+1 
 
+#also just do a count of N tasks in conventional direction - taskssum
 w<-which(mydata$ehp_handedness>5)
 mydata$taskssum[w]<-mydata$taskssum[w]+1 
 w<-which(mydata$lateralised_category>0)
@@ -49,15 +57,16 @@ mydata$taskssum[w]<-mydata$taskssum[w]+1
 w<-which(is.na(mydata$lateralised_category))
 mydata$lat3[w]<-NA
 mydata$taskssum[w]<-NA
-mydata$taskssum_jitter<-jitter(mydata$taskssum)
-#also just do a count of N tasks in conventional direction - taskssum
+mydata$taskssum_jitter<-jitter(mydata$taskssum,2)
 
+```
 
+```{r selectcols, echo=FALSE}
 #----------------------------------------------------------
 # Produce data frame of selected columns 
 #----------------------------------------------------------
 data.short<-filter(mydata,zygosity<9)
-data.short<-dplyr::select(mydata,record_id,fam_id,age_at_test,female,zygosity,myinclude,twin,n_trials, laterality_index,qhp_freq_r,ehp_handedness,lang_probs,lateralised_category,lat3,ehp_jitter,qhp_jitter,taskssum,taskssum_jitter)
+data.short<-dplyr::select(mydata,record_id,fam_id,age_at_test,female,zygosity,myinclude,twin,n_trials, laterality_index,qhp_handedness,ehp_handedness,lang_probs,lateralised_category,lat3,ehp_jitter,qhp_jitter,taskssum,taskssum_jitter)
 #identify cases to exclude because of less than 12 trials on doppler
 w<-c(which(data.short$n_trials<12),which(is.na(data.short$n_trials)))
 data.short$doppexcl <- 0
@@ -176,13 +185,105 @@ Following Groen et al (2012) we excluded data from children who had fewer than 1
 
 The standard error of the LI for an individual was computed by considering the size of LI at the same peak latency across all trials. This makes it possible to consider whether the LI is significantly different from zero. Where this was the case, laterality can be categorised as left or right, and where the LI was not significantly different from zero, the laterality is coded as bilateral. Note that coding of bilateral laterality can result if data are merely noisy.
 
-Bishop (2013) suggested that inconsistency of laterality across different measures may be an indicator of underlying genotype. To test this idea, children were categorised as consistent or inconsistently lateralised: consistent lateralisation was coded if the children was either RRL or LLR on EHI, QHP and laterality index respectively, and inconsistent otherwise.
+3. Consistency of manual/language laterality.
+
+Prominent genetic theories by Annett () and McManus () have proposed that observed distributions of handedness are the result of a mixture of two underlying genotypes: one that shows a population bias and the other that has handedness randomly determined. If the typical bias affected both manual and language laterality, this should lead to  a typical pattern of right-handedness and left-brainedness for language; the greater the departure from this pattern, the greater the likelihood that the individual has the atypical, unbiased genotype. To evaluate this idea, individuals were categorised as typical or atypical on each measure, and an overall measure derived consisting of the number of tasks with typical laterality (R for handedness and L for language). For the language measure, left-lateralisation was coded when the 95% confidence interval around the LI did not include zero. For the handedness measure, R-handedness was coded when more actions/reaches were performed with the R than with the L.
 
 ## Procedure  
 (This section is copied from Wilson & Bishop, 2018). Ethical approval was obtained for the study in 2011 from the Berkshire NHS Research Ethics Committee (reference 11/SC/0096), and data collection started in August of that year, finishing in October 2016. Where families had expressed interest in the study, they were interviewed by telephone to assess whether the children were likely to meet inclusion criteria, and an appointment was made to see the twins at home or at school, depending on parental preference. Families were widely dispersed around the UK, including Northern Ireland, Scotland, Wales and England, so testing was scheduled where possible to minimise travel. During the course of recruitment, which lasted for a period of five years, a total of eight research assistants as well as the senior author were involved in assessing children. In some cases, two testers worked together, each seeing one twin, and in others a single tester saw both children sequentially. The assessment was conducted in a single session lasting between 2-3 hours per child, with breaks where needed.
 
+```{r powertab, echo=FALSE}
+#---------------------------------------------------------------------------------------
+# DVMB version of powerFun, with just AE in model
+# Used to see how low a value of a2 is detected in AE model with this sample size
+#---------------------------------------------------------------------------------------
+powertable <-data.frame(matrix(NA,nrow=20,ncol=5)) #initialise table to hold results
+myaa<-vector() #blank vector: will hold smallest value of aa with lower CI > 0
+colnames(powertable)<-c('MZ/DZ Npairs','true.aa','est.aa','se.est','lowerCI')
+thisrow<-0
+for (myn in 1:2){ #estimate for both sample sizes
+for (myadd in seq(5,50, by=5)){ #estimate for a2 values from .05 to .5 in steps of .5
+  thisrow<-thisrow+1
+aa=myadd/100 # 
+Nmz=tab2f[1,myn]+tab2f[2,myn] #take Ns from previous tab2f
+Ndz=tab2f[3,myn]+tab2f[4,myn]+tab2f[5,myn]
+
+
+nv <- 1 #N variables
+ntv <- nv*2 #N columns (twins)
+
+ee <- sqrt(1 - aa^2)
+AA <- aa^2
+EE <- ee^2
+
+mzMat <- matrix(c(AA + EE, AA, AA, AA + EE),2)
+dzMat <- matrix(c(AA + EE, .5*AA, .5*AA, AA + EE),2)
+
+mzData <- mvrnorm(Nmz , mu = c(0,0), mzMat, empirical = T)
+dzData <- mvrnorm(Ndz , mu = c(0,0), dzMat, empirical = T)
+
+selVars <- paste("t", 1:2, sep = "")
+colnames(mzData) <- colnames(dzData) <- selVars
+
+MZdata  <-  mxData(mzData, type="raw" )
+DZdata  <-  mxData(dzData, type="raw" )
+
+
+a <-  mxMatrix( type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.6, label="a11", name="a" )
+e <-  mxMatrix( type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.6, label="e11", name="e" )
+
+A <-  mxAlgebra( expression=a %*% t(a), name="A" )
+E <-  mxAlgebra( expression=e %*% t(e), name="E" )
+
+Mean    <-  mxMatrix( type="Full", nrow=1, ncol=nv, free=TRUE, values= 0, label="mean", name="Mean" )
+expMean <-  mxAlgebra( expression= cbind(Mean,Mean), name="expMean")
+
+expCovMZ <- mxAlgebra( expression= rbind  ( cbind(A+E , A),cbind(A   , A+E)), name="expCovMZ" )
+expCovDZ <- mxAlgebra( expression= rbind  ( cbind(A+E     , 0.5%x%A),cbind(0.5%x%A , A+E)),  name="expCovDZ" ) 
+
+obs <-  list(a,e,A,E,Mean,expMean,expCovMZ,expCovDZ)
+
+fun <- mxFitFunctionML()
+mzExp <- mxExpectationNormal(covariance="expCovMZ", means="expMean", dimnames=selVars )
+dzExp <- mxExpectationNormal(covariance="expCovDZ", means="expMean", dimnames=selVars )
+
+MZ <- mxModel("MZ", obs, MZdata, fun, mzExp)
+DZ <- mxModel("DZ", obs, DZdata, fun, dzExp)
+
+aeFun <- mxFitFunctionMultigroup(c("MZ","DZ"))
+ae <- mxModel("AE", MZ, DZ, fun, aeFun)
+
+aeFit <- mxRun(ae, silent = T)
+summary(aeFit)
+
+pars <- round(cbind(aeFit$output$estimate, aeFit$output$standardErrors), 3)
+colnames(pars) <- c("Estimates", "Std. Err.")
+
+powertable[thisrow,1]<-paste0(Nmz,'/',Ndz)
+powertable[thisrow,2]<-aa
+powertable[thisrow,3:4]<-pars[1,1:2]
+powertable[thisrow,5]<-round(pars[1,1]-1.96*pars[1,2],3)
+#Find the value of a2 where lower CI is just above 0
+if (powertable[thisrow,5]<0){thisaa<-thisrow}
+}
+  myaa<-c(myaa,powertable[(thisaa+1),2])
+}
+#myaa holds 2 values: one for larger and one for smaller sample size
+#These correspond to smallest values of aa detectable as different from zero with this sample size
+
+```
 ## Data analysis
-We had aimed to use standard ACE decomposition using maximum likelihood to estimate heritability of the laterality index. However, initial inspection of correlations of the laterality index between two members of a twin pair showed no indication of any association, and so this approach was not pursued. The scatterplots are shown in Figure 1.
+1. Power analysis
+
+As noted above, the usual approach to twin analysis is ACE decomposition, typically implemented using structural equation modeling with maximum likelihood estimates (Rijsdijk & Sham, 2002). Large samples are needed to accurately estimate additive genetic (a^2^), shared environmental (c^2^) influences, both of which lead to positive covariance between two members of both MZ and DZ pairs: they are distinguished by the fact that genetic influence leads to greater covariance for MZ and DZ twins. In the context of laterality, however, estimates of shared environmental influences are negligible in adequately powered twin studies, and it is safe to ignore the c^2^ term. This simplifies the analysis, making it possible to detect genetic effects with smaller samples. A power analysis using a modified version of the powerFun function in OpenMx showed that for the larger sample of twins for whom handedness data were available, there is power to detect heritability, a^2^, of `r round(myaa[1]^2,2)` or greater, and for the smaller sample with language laterality data, an effect of `r round(myaa[2]^2,2)` or greater is detectable.
+(Note to self: these values seem way too low! - need to check with verhulst method involving noncentrality parameter)
+
+2. AE modeling
+
+
+
+## Results
+Scatterplots showing the association of the laterality indices between two members of a twin pair showed no indication of any association (see Figure 1). 
 
 
 ```{r scatterplot,echo=FALSE}
@@ -239,27 +340,69 @@ for (i in 1:2){
 # After re-ordering as above,for the opposite sex group, male is twin 1 and female is twin 2. Need to explain that in the legend as well as use of jitter.
 #dev.off()
 ```
-##Consistency of laterality
-In a further analysis, children were categorised according to whether their laterality was consistent across the two handedness tasks and the language laterality task (i.e., either R for handedness and L for language, or vice versa). Concordance between twins relative to zygosity is shown in Table 2.
 
-```{r latcats, echo=FALSE}
-#Be warned - this is mind boggling because we are focusing both on concordance between two twins, AND on consistency of laterality across tasks.
-#THis code is a v clunky way of creating a category reflecting concordance of both twins
-#when categoised as RRL,LLR or inconsistent
-doubledata$bothcat3<-NA #initialise
-#We want to ignore the order of twins, so e.g. create categories where 1/3 and 3/1 the same
-#Will end up with a 2-digit code for the pair, each digit reflecting RRL/LLR/inconsistent
-w<-which(doubledata$lat32>doubledata$lat3)
-doubledata$bothcat3[w]<-(10*doubledata$lat3[w])+doubledata$lat32[w]
-w<-which(doubledata$lat32==doubledata$lat3)
-doubledata$bothcat3[w]<-10*doubledata$lat3[w]+doubledata$lat32[w]
-w<-which(doubledata$lat32<doubledata$lat3)
-doubledata$bothcat3[w]<-10*doubledata$lat32[w]+doubledata$lat3[w]
-doubledata$bothcat3<-as.factor(doubledata$bothcat3)
-levels(doubledata$bothcat3)<-c('Concordant, RRL','Concordant, LLR','Discordant, RRL/inconsistent','Discordant, LLR/inconsistent','Concordant,inconsistent')
-doubledata$MZDZ<-as.factor(doubledata$MZDZ)
-levels(doubledata$MZDZ)<-c('MZ','DZ')
-table(doubledata$bothcat3,doubledata$MZDZ,doubledata$twin)
+```{r AEmodel, echo=FALSE}
+#---------------------------------------------------------------
+#Try fitting AE model, despite low correlations.
+# Predict it won't fit because of zero DZ correlation - only compatible with no genetic effect! 
+# Surprisingly, fit seems OK.
+nv <- 1 #N variables
+ntv <- nv*2 #N columns (twins)
+aatable <-data.frame(matrix(NA,nrow=3,ncol=6))
+colnames(aatable)<-c('Measure','N MZ','N DZ','a','a.SE','a^2')
+mxcols <-matrix(c('ehp_handedness','ehp_handedness2','qhp_handedness','qhp_handedness2','laterality_index','laterality_index2'),nrow=3,byrow=TRUE)
+for (mytask in 1:3){
+selVars <- mxcols[mytask,1:2]
+latcols<-which(names(doubledata)%in%selVars)
+rowrange<-1:(nrow(doubledata)/2)
+mymz <- filter(doubledata[rowrange,],MZDZ==1)
+mydz <- filter(doubledata[rowrange,],MZDZ==2)
+if(mytask==3)
+{mymz<-filter(mymz,doppout==0)
+mydz<-filter(mydz,doppout==0)
+}
+MZdata  <-  mxData(scale(mymz[,latcols]), type="raw" )
+DZdata  <-  mxData(scale(mydz[,latcols]), type="raw" )
+
+a <-  mxMatrix( type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.6, label="a11", name="a" )
+e <-  mxMatrix( type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.6, label="e11", name="e" )
+
+A <-  mxAlgebra( expression=a %*% t(a), name="A" )
+E <-  mxAlgebra( expression=e %*% t(e), name="E" )
+
+Mean    <-  mxMatrix( type="Full", nrow=1, ncol=nv, free=TRUE, values= 0, label="mean", name="Mean" )
+expMean <-  mxAlgebra( expression= cbind(Mean,Mean), name="expMean")
+
+expCovMZ <- mxAlgebra( expression= rbind  ( cbind(A+E , A),cbind(A   , A+E)), name="expCovMZ" )
+expCovDZ <- mxAlgebra( expression= rbind  ( cbind(A+E     , 0.5%x%A),cbind(0.5%x%A , A+E)),  name="expCovDZ" ) 
+
+obs <-  list(a,e,A,E,Mean,expMean,expCovMZ,expCovDZ)
+
+fun <- mxFitFunctionML()
+mzExp <- mxExpectationNormal(covariance="expCovMZ", means="expMean", dimnames=selVars )
+dzExp <- mxExpectationNormal(covariance="expCovDZ", means="expMean", dimnames=selVars )
+
+MZ <- mxModel("MZ", obs, MZdata, fun, mzExp)
+DZ <- mxModel("DZ", obs, DZdata, fun, dzExp)
+
+aeFun <- mxFitFunctionMultigroup(c("MZ","DZ"))
+ae <- mxModel("AE", MZ, DZ, fun, aeFun)
+
+aeFit <- mxRun(ae, silent = T)
+summary(aeFit)
+
+pars <- round(cbind(aeFit$output$estimate, aeFit$output$standardErrors), 3)
+colnames(pars) <- c("Estimates", "Std. Err.")
+aatable[mytask,1]<-mxcols[mytask,1]
+aatable[mytask,2]<-nrow(mymz)
+aatable[mytask,3]<-nrow(mydz)
+aatable[mytask,4]<-pars[1,1]
+aatable[mytask,5]<-pars[1,2]
+aatable[mytask,6]<-round(pars[1,1]^2,2)
+}
+stargazer(aatable,type='text',title='Table 3: Heritability estimates for different measures',summary=FALSE)
+
+#NB all tasks have been scaled; skew in the handedness measures has not been accounted for
 ```
 ##Session information
 ```{r sessinfo}
