@@ -66,7 +66,7 @@ mydata$taskssum_jitter<-jitter(mydata$taskssum,2)
 # Produce data frame of selected columns 
 #----------------------------------------------------------
 data.short<-filter(mydata,zygosity<9)
-data.short<-dplyr::select(mydata,record_id,fam_id,age_at_test,female,zygosity,myinclude,twin,n_trials, laterality_index,qhp_handedness,ehp_handedness,lang_probs,lateralised_category,lat3,ehp_jitter,qhp_jitter,taskssum,taskssum_jitter)
+data.short<-dplyr::select(mydata,record_id,fam_id,age_at_test,female,zygosity,n_language_low,myinclude,twin,n_trials, laterality_index,qhp_handedness,ehp_handedness,lang_probs,lateralised_category,lat3,ehp_jitter,qhp_jitter,taskssum,taskssum_jitter)
 #identify cases to exclude because of less than 12 trials on doppler
 w<-c(which(data.short$n_trials<12),which(is.na(data.short$n_trials)))
 data.short$doppexcl <- 0
@@ -179,7 +179,7 @@ On each trial, the child silently views a 12 s clip from a cartoon that included
 
 A maximum of 30 trials was administered, depending on the child's tolerance of the procedure. The child's verbal responses were recorded and subsequently transcribed, and the examiner noted behaviour during the procedure.  Trials were excluded if the child either spoke during a silent period, or failed to talk during the 'talk' period: these need to be omitted because they invalidate the trial, which involves comparing the period when the child talks with a baseline period when no talking occurs. 
 
-The analysis of the animation task data consists of a standard sequence of processing steps, following original work by Deppe  et al (1997). We used a custom script written in R () for data processing. This included an initial step of identifying trials where there was very brief signal dropout (affecting one datapoint) and interpolate the mean value in such cases. Trials with more prolonged signal dropout were discarded. After these preliminary steps, heart cycle integration was applied to remove the heartbeat, followed by signal normalisation, artefact rejection, epoching and baseline correction.The averaged left and right velocity plots were subtracted to give a difference waveform, and the peak difference (maximum or minimum) was located within a period of interest, predefined as x to x seconds after the cue to speak. The laterality index (LI) is then computed as the mean amplitude of mean blood flow velocity difference in a 2 sec window centred on the peak difference value. 
+The analysis of the animation task data consists of a standard sequence of processing steps, following original work by Deppe  et al (1997). We used a custom script written in R () for data processing. This included an initial step of identifying trials where there was very brief signal dropout (affecting one datapoint) and interpolate the mean value in such cases. Trials with more prolonged signal dropout were discarded. After these preliminary steps, heart cycle integration was applied to remove the heartbeat, followed by signal normalisation, artefact rejection, epoching and baseline correction.The averaged left and right velocity plots were subtracted to give a difference waveform, and the peak difference (maximum or minimum) was located within a period of interest, predefined as 4 to 14 seconds after the cue to speak. The laterality index (LI) is then computed as the mean amplitude of mean blood flow velocity difference in a 2 sec window centred on the peak difference value. 
 
 Following Groen et al (2012) we excluded data from children who had fewer than 12 accepted trials, as the LI is likely to be unreliable when based on such a small amount of data. In addition, data were excluded for one twin pair where one child's laterality index was more than 5 SD from the mean. 
 
@@ -224,9 +224,18 @@ dzData <- mvrnorm(Ndz , mu = c(0,0), dzMat, empirical = T)
 
 selVars <- paste("t", 1:2, sep = "")
 colnames(mzData) <- colnames(dzData) <- selVars
-
 MZdata  <-  mxData(mzData, type="raw" )
 DZdata  <-  mxData(dzData, type="raw" )
+#Used these 2 lines to look at impact of log transform
+#It wipes out heritability!
+#MZdata  <-  mxData(log(mzData+5), type="raw" )
+#DZdata  <-  mxData(log(dzData+5), type="raw" )
+#Used these 2 lines to look at impact of exp transform
+#It makes heritability estimates v unstable, but often huge!
+#Presumably because of large effect of extreme cases
+# MZdata  <-  mxData(exp(mzData), type="raw" )
+# DZdata  <-  mxData(exp(dzData), type="raw" )
+
 
 
 a <-  mxMatrix( type="Lower", nrow=nv, ncol=nv, free=TRUE, values=.6, label="a11", name="a" )
@@ -311,8 +320,9 @@ for (i in 1:2){
   if (i==2){mymain='DZ: '}
   tempdat <-filter(plotdata,MZDZ==i)
   #correlation from double entry gives ICC
-  rlat<-cor(tempdat[,mycols[j,1]],tempdat[,mycols[j,2]])
-  mysub<-paste0('r = ',toString(round(rlat,3))) #text with correl coeff to 3 places
+  rlat<-cor(tempdat[,mycols[j,1]],tempdat[,mycols[j,2]],method='spearman')
+  mysub<-paste0('rho =',toString(round(rlat,3))) #text with correl coeff to 3 places
+  #would like greek letter! expression(rho) did not work!
   tempdat1<-filter(tempdat,twin==1) #because of double entry, just use twin1
   #------------------------------------------------------------------------------
   #for opposite sex twins, reorganise so that male is twin 1 and female twin 2
@@ -323,13 +333,19 @@ for (i in 1:2){
   tempbit <- tempdat1[w,mycols[j,1]]
   tempdat1[w,mycols[j,1]]<-tempdat1[w,mycols[j,2]]
     tempdat1[w,mycols[j,2]]<-tempbit
-  }
-   #------------------------------------------------------------------------------
-  #Now plot MZ and DZ values for twin 1 and twin 2
+   }
+   #Now plot MZ and DZ values for twin 1 and twin 2
   #------------------------------------------------------------------------------
-
+  thisx<-tempdat1[,mycols[j,1]]
+  thisy<- tempdat1[,mycols[j,2]]
+  #attempt to see if inverting scale and taking exponential changes things
+  # mymax<-max(c(thisx,thisy))-1
+  # thisx<-exp(mymax-thisx)
+  # thisy<-exp(mymax-thisy)
+  #   rlat<-cor(thisx,thisy,method='spearman')
+    
   mymain=paste0(mymain,'N = ',nrow(tempdat1),' pairs')
-  plot(tempdat1[,mycols[j,1]],tempdat1[,mycols[j,2]],xlim=tasklims[j,1:2],ylim=tasklims[j,1:2],pch=pchcode[tempdat$gender2],
+  plot(thisx, thisy,xlim=tasklims[j,1:2],ylim=tasklims[j,1:2],pch=pchcode[tempdat$gender2],
        xlab='Twin 1',ylab='Twin 2',main=mymain,cex.lab=1.2)
   text(tasklims[j,4],tasklims[j,5],mysub,col='red',font=2)
   abline(h=tasklims[j,3],col=4,lty=2)
@@ -338,7 +354,49 @@ for (i in 1:2){
 }
 }
 # After re-ordering as above,for the opposite sex group, male is twin 1 and female is twin 2. Need to explain that in the legend as well as use of jitter.
-#dev.off()
+#dev.off() #needed to turn off printing to external pdf etc
+```
+
+```{r testnormality}
+#It's clear handedness all measures are v non-normal.
+shapiro.test(doubledata$ehp_handedness)
+qqnorm(doubledata$ehp_handedness)
+shapiro.test(doubledata$qhp_handedness)
+qqnorm(doubledata$qhp_handedness)
+shapiro.test(doubledata$laterality_index)
+qqnorm(doubledata$laterality_index)
+shapiro.test(doubledata$taskssum)
+qqnorm(doubledata$taskssum)
+```
+```{r simhand, echo=FALSE}
+
+#If you have normal data but you censor scores so 75% are the same, how does this affect correlation?
+nsims <-100
+mysimdat<-data.frame(matrix(NA,nrow=nsims,ncol=4))
+colnames(mysimdat)<-c('Original_r','Original_rho','Censored_r','Censored_rho')
+myn <- 100
+truer<-0
+mycov <-matrix(c(1,truer,truer,1),nrow=2)
+for (i in 1:nsims){
+simdat <- mvrnorm(myn , mu = c(0,0), mycov)
+#now censor values, so that all > -.5 are 0
+simdat2<-simdat
+w<-which(simdat[,1]>-.5)
+simdat2[w,1]<-0
+w<-which(simdat[,2]>-.5)
+simdat2[w,2]<-0
+r1<-cor(simdat,method='pearson')
+r2<-cor(simdat,method='spearman')
+mysimdat[i,1]<-r1[1,2]
+mysimdat[i,2]<-r2[1,2]
+
+r3<-cor(simdat,method='pearson')
+r4<-cor(simdat2,method='spearman')
+mysimdat[i,3]<-r3[1,2]
+mysimdat[i,4]<-r4[1,2]
+}
+round(colMeans(mysimdat),3)
+#results show censoring has minimal effect - serves to reduce correlation if rho used.
 ```
 
 ```{r AEmodel, echo=FALSE}
@@ -346,6 +404,7 @@ for (i in 1:2){
 #Try fitting AE model, despite low correlations.
 # Predict it won't fit because of zero DZ correlation - only compatible with no genetic effect! 
 # Surprisingly, fit seems OK.
+## NB Really need a model that takes into account nonnormality!
 nv <- 1 #N variables
 ntv <- nv*2 #N columns (twins)
 aatable <-data.frame(matrix(NA,nrow=3,ncol=6))
@@ -403,6 +462,59 @@ aatable[mytask,6]<-round(pars[1,1]^2,2)
 stargazer(aatable,type='text',title='Table 3: Heritability estimates for different measures',summary=FALSE)
 
 #NB all tasks have been scaled; skew in the handedness measures has not been accounted for
+```
+
+##Thoughts
+Other studies find high heritability for raw L and R measures - it's just the asymmetry score that is not high.
+I found that for hand skill - also for brain things
+Would we find the same here? If so, what would it mean?
+Is it raw L hem power that matters? Or raw combined power?
+So I need to go back and get measure of flow in POI
+
+```{r poiavgs, echo=FALSE}
+datadir <-"~/Doppler_analysis/"
+rawfile<-"longrawDopplermeans.csv" #holds all normalised values by subject/side/timepoint
+rawdata<-read.csv(paste0(datadir,rawfile))
+cutdata<-filter(rawdata,!is.na(value)) #remove those with missing data
+cutdata<-filter(cutdata,time>3.99&time<14.01) #focus only on POI
+cutdata<-cutdata[,c(1,2,4)] #don't need time variable; averaging over this
+aggdata <-aggregate(cutdata$value, by=list(cutdata$ID,cutdata$side),
+  FUN=mean)
+colnames(aggdata)<-c('ID','side','flow')
+#do next bit in a loop, though should be possible to avoid this
+colstart<-ncol(doubledata2)+1
+doubledata2[,colstart:(colstart+3)]<-NA
+colnames(doubledata2)[colstart:(colstart+3)]<-c('MeanL1','MeanR1','MeanL2','MeanR2')
+for (i in 1:(nrow(doubledata2)/2)){
+  myid<-doubledata2$record_id[i]
+  w<-which(aggdata$ID==myid)
+  if(length(w)>0){  #some IDs are unexpectedly missing?
+  doubledata2[i,colstart:(colstart+1)]<-aggdata$flow[w]
+   myid2<-doubledata2$record_id2[i]
+  w<-which(aggdata$ID==myid2)
+  doubledata2[i,(colstart+2):(colstart+3)]<-aggdata$flow[w] 
+  } 
+}
+#Need to check why some datapoints are omitted from the longxls file.
+#This is just a kludge to get idea of if this is going to be worth pursuing
+#In general, no. Confirms that the absdiff scores v highly correlated with LI.
+#But no evidence for MZ>DZ correlations for the abs values or the diff
+doubledata2[141:280,42:43]<-doubledata2[1:140,44:45]
+doubledata2[141:280,44:45]<-doubledata2[1:140,42:43]
+mymz<-which(doubledata2$MZDZ==1)
+mydz<-which(doubledata2$MZDZ==2)
+
+doubledata2$absdiff1<-doubledata2$MeanL1-doubledata2$MeanR1
+doubledata2$absdiff2<-doubledata2$MeanL2-doubledata2$MeanR2
+
+doubledata2$propL1<-doubledata2$MeanL1/(doubledata2$MeanL1+doubledata2$MeanR1)
+doubledata2$propL2<-doubledata2$MeanL2/(doubledata2$MeanL2+doubledata2$MeanR2)
+doubledata2$totflow<-doubledata2$MeanL1+doubledata2$MeanR1
+doubledata2$totflow2<-doubledata2$MeanL2+doubledata2$MeanR2
+corm<-round(cor(doubledata2[mymz,c(3,6,10,30,44:53)],use='complete.obs'),3)
+cord<-round(cor(doubledata2[mydz,c(3,6,10,30,44:53)],use='complete.obs'),3)
+
+#This suggests 
 ```
 ##Session information
 ```{r sessinfo}
