@@ -1,26 +1,37 @@
 ---
-title: "Negligible heritability of language and manual laterality: a twin study"
+title: "Negligible heritability of language laterality assessed by functional transcranial
+  Doppler ultrasound: a twin study"
 author: "DVM Bishop"
-date: "10/05/2018"
-output: pdf_document
+date: "25/05/2018"
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
+#---------------------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE,message = FALSE,warning=FALSE)
-
+batesinfo <- 1 #bits for tim bates
+#to do
+# AE model with ordinal - is this same as just using ranks? - NO
+# Alternative test of power using simulated data
+# ? More analysis of original Medland handedness twin data
 require(yarrr)
 require(stargazer) #Hlavac, Marek (2018). stargazer: Well-Formatted Regression and Summary Statistics Tables.
 # R package version 5.2.1. https://CRAN.R-project.org/package=stargazer 
 require(tidyverse)
 require(OpenMx)
 require(MASS)
+require(psych) #for phi coeff
 mxOption(NULL, 'Default optimizer', 'NPSOL')
 source('http://ibg.colorado.edu/cdrom2016/verhulst/Power/powerFun.R')
 #see http://www.people.vcu.edu/~bverhulst/power/powerScript.R
 ```
 ```{r readdata, echo=FALSE}
+#---------------------------------------------------------------
 #Read data before any text as need to refer to Ns etc computed here.
 #Version of redcap output from 9 May has zygosity for one pair where it had been wrongly coded 9
+#---------------------------------------------------------------
 mydir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/"
 myfile<-"TwinsData_DATA_2018-05-09_1021.csv"
 mydata<-read.csv(paste0(mydir,"Data/",myfile),stringsAsFactors = FALSE)
@@ -145,6 +156,8 @@ For a detailed account of selection of participants, see Wilson and Bishop (2018
 
 ```{r table2, echo=FALSE}
 #--------------------------------------------------------------
+# Create table N twin pairs by zygo and sex
+#--------------------------------------------------------------
 doubledata$zygosex<-10*doubledata$zygosity+doubledata$female
 w<-which(doubledata$zygosex==31)
 doubledata$zygosex[w] <-30
@@ -193,10 +206,10 @@ Prominent genetic theories by Annett () and McManus () have proposed that observ
 (This section is copied from Wilson & Bishop, 2018). Ethical approval was obtained for the study in 2011 from the Berkshire NHS Research Ethics Committee (reference 11/SC/0096), and data collection started in August of that year, finishing in October 2016. Where families had expressed interest in the study, they were interviewed by telephone to assess whether the children were likely to meet inclusion criteria, and an appointment was made to see the twins at home or at school, depending on parental preference. Families were widely dispersed around the UK, including Northern Ireland, Scotland, Wales and England, so testing was scheduled where possible to minimise travel. During the course of recruitment, which lasted for a period of five years, a total of eight research assistants as well as the senior author were involved in assessing children. In some cases, two testers worked together, each seeing one twin, and in others a single tester saw both children sequentially. The assessment was conducted in a single session lasting between 2-3 hours per child, with breaks where needed.
 
 ```{r powertab, echo=FALSE}
-#---------------------------------------------------------------------------------------
+#------------------------------------------------------------------------
 # DVMB version of powerFun, with just AE in model
 # Used to see how low a value of a2 is detected in AE model with this sample size
-#---------------------------------------------------------------------------------------
+#------------------------------------------------------------------------
 powertable <-data.frame(matrix(NA,nrow=20,ncol=5)) #initialise table to hold results
 myaa<-vector() #blank vector: will hold smallest value of aa with lower CI > 0
 colnames(powertable)<-c('MZ/DZ Npairs','true.aa','est.aa','se.est','lowerCI')
@@ -292,7 +305,7 @@ As noted above, the usual approach to twin analysis is ACE decomposition, typica
 
 
 ## Results
-Scatterplots showing the association of the laterality indices between two members of a twin pair showed no indication of any association (see Figure 1). 
+Figure 1 shows scatterplots depicting the association of the laterality indices between two members of a twin pair; there is no indication of any association between the LI indices for two members of a twin pair.  
 
 
 ```{r scatterplot,echo=FALSE}
@@ -358,7 +371,11 @@ for (i in 1:2){
 ```
 
 ```{r testnormality}
+#--------------------------------------------------------------
 #It's clear handedness all measures are v non-normal.
+#--------------------------------------------------------------
+donorm<-0
+if (donorm==1){
 shapiro.test(doubledata$ehp_handedness)
 qqnorm(doubledata$ehp_handedness)
 shapiro.test(doubledata$qhp_handedness)
@@ -367,10 +384,15 @@ shapiro.test(doubledata$laterality_index)
 qqnorm(doubledata$laterality_index)
 shapiro.test(doubledata$taskssum)
 qqnorm(doubledata$taskssum)
+}
 ```
 ```{r simhand, echo=FALSE}
-
+#--------------------------------------------------------------
+#Check impact of non-normality on heritability estimates
 #If you have normal data but you censor scores so 75% are the same, how does this affect correlation?
+#--------------------------------------------------------------
+dosim <-0
+if(dosim==1){
 nsims <-100
 mysimdat<-data.frame(matrix(NA,nrow=nsims,ncol=4))
 colnames(mysimdat)<-c('Original_r','Original_rho','Censored_r','Censored_rho')
@@ -396,15 +418,18 @@ mysimdat[i,3]<-r3[1,2]
 mysimdat[i,4]<-r4[1,2]
 }
 round(colMeans(mysimdat),3)
+
 #results show censoring has minimal effect - serves to reduce correlation if rho used.
+}
 ```
 
 ```{r AEmodel, echo=FALSE}
 #---------------------------------------------------------------
 #Try fitting AE model, despite low correlations.
+#--------------------------------------------------------------
 # Predict it won't fit because of zero DZ correlation - only compatible with no genetic effect! 
 # Surprisingly, fit seems OK.
-## NB Really need a model that takes into account nonnormality!
+## NB However, really need a model that takes into account nonnormality! - see below re ordinal data
 nv <- 1 #N variables
 ntv <- nv*2 #N columns (twins)
 aatable <-data.frame(matrix(NA,nrow=3,ncol=6))
@@ -459,9 +484,95 @@ aatable[mytask,4]<-pars[1,1]
 aatable[mytask,5]<-pars[1,2]
 aatable[mytask,6]<-round(pars[1,1]^2,2)
 }
-stargazer(aatable,type='text',title='Table 3: Heritability estimates for different measures',summary=FALSE)
+stargazer(aatable,type='text',title='Table 3: Heritability estimates for different measures:\n standard ACE ignoring nonnormality',summary=FALSE)
 
 #NB all tasks have been scaled; skew in the handedness measures has not been accounted for
+```
+
+```{r polychoric, echo=FALSE}
+#---------------------------------------------------------------
+dopoly<-1
+if(dopoly==1){
+#AE model; try ordinal version for handedness.
+# Based on ibg.colorado.edu/cdrom2010/medland/wed_morning/wed_morning2010.pdf
+
+
+#use double-entry file ? otherwise problems if null value for one category
+myehp<-dplyr::select(doubledata,MZDZ,ehp_handedness,ehp_handedness2)
+npair<-nrow(myehp)
+my.mz<-filter(myehp[1:npair,],MZDZ==1)
+mypolytab.mz<-table(my.mz$ehp_handedness,my.mz$ehp_handedness2)
+my.dz<-filter(myehp[1:npair,],MZDZ==2)
+mypolytab.dz<-table(my.dz$ehp_handedness,my.dz$ehp_handedness2)
+mypoly.mz<-polychoric(mypolytab.mz)$rho
+mypoly.dz<-polychoric(mypolytab.dz)$rho
+print('Polychoric correlations (rho)')
+mypoly.mz
+mypoly.dz
+
+myqhp<-dplyr::select(doubledata,MZDZ,ehp_handedness,ehp_handedness2)
+npair<-nrow(myehp)
+my.mz<-filter(myehp[1:npair,],MZDZ==1)
+mypolytab.mz<-table(my.mz$ehp_handedness,my.mz$ehp_handedness2)
+my.dz<-filter(myehp[1:npair,],MZDZ==2)
+mypolytab.dz<-table(my.dz$ehp_handedness,my.dz$ehp_handedness2)
+mypoly.mz<-polychoric(mypolytab.mz)$rho
+mypoly.dz<-polychoric(mypolytab.dz)$rho
+
+#Is result the same as for ranked values?
+my.mz$temp<-rank(my.mz$ehp_handedness)
+my.mz$temp2<-rank(my.mz$ehp_handedness2)
+cor(my.mz$temp,my.mz$temp2,method='spearman')
+#No! polychoric rho is higher - assumes biv normality?
+
+#Is result the same if values assigned as z-s by freq
+#Need z corresponding to cumulative freq for each score
+#first use table function to get freq distribution
+myhist <-table(data.short$ehp_handedness)
+myhist <-myhist/sum(myhist) #convert to proportions
+#make into cumulative freq dist
+myhist2<-vector()
+myhist2[1]<-myhist[1]
+for (i in 2:length(myhist)){
+  myhist2[i]<-myhist[i]+myhist2[i-1]
+}
+
+mythresh<-vector()
+mythresh[1]<- -2 #floor value
+for (i in 1:(length(myhist)-1))
+{mythresh[i+1]<-qnorm(myhist2[i])
+  
+}
+tempvec<-my.mz$ehp_handedness+1 #Cannot have index of zero: need to add one to score so it can act as index
+my.mz$zhand<-mythresh[tempvec]
+tempvec2<-my.mz$ehp_handedness2+1
+my.mz$zhand2<-mythresh[tempvec2]
+cor(my.mz$zhand,my.mz$zhand2,method="spearman")
+#Still much lower than value from polychoric!
+}
+```
+```{R umxordinal, echo=TRUE}
+# ===================
+# = Ordinal example from Bates with handedness data substituted=
+# ===================
+require(umx)
+doubledata$ehp_handedness1<-as.factor(doubledata$ehp_handedness) #just to fit labelling convention
+doubledata$ehp_handedness2<-as.factor(doubledata$ehp_handedness2)
+
+ordDVs = c("ehp_handedness1", "ehp_handedness2")
+selDVs = c("ehp_handedness")
+# Make the ordinal variables into mxFactors (ensure ordered is TRUE, and require levels)
+singledata<-doubledata[doubledata$twin==1,]
+singledata[, ordDVs] <- mxFactor(singledata[, ordDVs], levels = c(0:10))
+
+mzData <- singledata[singledata$MZDZ ==1, ]
+dzData <- singledata[singledata$MZDZ ==2, ]
+
+
+m1 = umxACE(selDVs = selDVs, dzData = dzData, mzData = mzData, sep = '',thresholds='deviationBased')
+umxSummary(m1)
+parameters(m1)
+
 ```
 
 ##Thoughts
@@ -472,7 +583,12 @@ Is it raw L hem power that matters? Or raw combined power?
 So I need to go back and get measure of flow in POI
 
 ```{r poiavgs, echo=FALSE}
-datadir <-"~/Doppler_analysis/"
+#--------------------------------------------------------------
+# Analysis of poi averages
+#--------------------------------------------------------------
+dopoi<-0
+if (dopoi==1){
+  datadir <-"~/Doppler_analysis/"
 rawfile<-"longrawDopplermeans.csv" #holds all normalised values by subject/side/timepoint
 rawdata<-read.csv(paste0(datadir,rawfile))
 cutdata<-filter(rawdata,!is.na(value)) #remove those with missing data
@@ -514,9 +630,62 @@ doubledata2$totflow2<-doubledata2$MeanL2+doubledata2$MeanR2
 corm<-round(cor(doubledata2[mymz,c(3,6,10,30,44:53)],use='complete.obs'),3)
 cord<-round(cor(doubledata2[mydz,c(3,6,10,30,44:53)],use='complete.obs'),3)
 
-#This suggests 
+}
+```
+
+```{r medland, echo=FALSE}
+#--------------------------------------------------------------
+# Look at Medland handedness data
+#--------------------------------------------------------------
+domedland=0
+if(domedland==1){#Issues around Medland meta-analysis of handedness- when a2 is v low, can get -ve estimates.
+#If these are censored at zero, will bias overall picture.
+#Qu of what things look like if they are included.
+#Also - if DZ correl is NS, any genetic influence seems implausible?
+medland<-read.csv('medlandcsv.csv')
+for (i in 1:nrow(medland)){
+ vec<-c(medland$MZ_RR[i],medland$MZ_mixed[i]/2,medland$MZ_mixed[i]/2,medland$MZ_LL[i]) 
+ medland$phi.m[i]<-phi(vec,digits=3)
+  vec2<-c(medland$DZ_RR[i],medland$DZ_mixed[i]/2,medland$DZ_mixed[i]/2,medland$DZ_LL[i]) 
+ medland$phi.d[i]<-phi(vec2,digits=3)
+
+}
+#Check phi coeffs for mz and dz: note dz are v low indeed
+par(mfrow=c(1,2))
+ plot(log(medland$totN),medland$phi.d,col=(1+medland$measuretype),main='DZ')
+ abline(h=0)
+ # Add a legend
+legend(7, .5, legend=c('dk','writing','other uni','multiple','skill','self-report'),
+       col=seq(1:7), lty=1, cex=0.8)
+
+ plot(log(medland$totN),medland$phi.m,col=(1+medland$measuretype),main='MZ')
+ abline(h=0)
+ # Add a legend
+legend(7, .6, legend=c('dk','writing','other uni','multiple','skill','self-report'),
+       col=seq(1:7), lty=1, cex=0.8)
+
+#Estimate heritability from phi coeffiences (twice diffc between MZ and DZ)
+ medland$phi_heritab<-2*(medland$phi.m-medland$phi.d)
+ hist(medland$phi_heritab)
+ #How does heritability depend on sample size
+ medland$totN<-medland$MZ_total+medland$DZ_total
+ plot(log(medland$totN),medland$phi_heritab,col=(1+medland$measuretype))
+ # Add a legend
+legend(6, -.5, legend=c('dk','writing','other uni','multiple','skill','self-report'),
+       col=seq(1:7), lty=1, cex=0.8)
+
+#focus just on those with big N
+ medlandshort<-filter(medland,totN>200)
+ plot(medlandshort$year,medlandshort$phi_heritab)
+ hist(medland$phi.d)
+}
 ```
 ##Session information
 ```{r sessinfo}
 sessionInfo()
 ```
+##Useful references
+Medland, S. E., Duffy, D. L., J.Wright, M., Geffen, G. M., Hay, D. A., Levy, F., . . . Boomsma, D. I. (2009). Genetic influences on handedness: Data from 25,732 Australian and Dutch twin families. Neuropsychologia, 47, 330-337. 
+Medland, S. E., Duffy, D. L., Wright, M. J., Geffen, G. M., & Martin, N. G. (2006). Handedness in twins: Joint analysis of data from 35 samples. Twin Research and Human Genetics, 9, 46-53. 
+Turkheimer E. (2000). Three laws of behavior genetics and what they mean. Current Directions in Psychological Science, 9, 160–164. 
+Tenesa A., Haley C. S. (2013). The heritability of human disease: Estimation, uses and abuses. Nature Reviews Genetics, 14, 139–149.
