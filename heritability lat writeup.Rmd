@@ -2,7 +2,7 @@
 title: "Negligible heritability of language laterality assessed by functional transcranial
   Doppler ultrasound: a twin study"
 author: "DVM Bishop"
-date: "25/05/2018"
+date: "16/05/2019"
 output:
   word_document: default
   pdf_document: default
@@ -23,52 +23,90 @@ require(tidyverse)
 require(OpenMx)
 require(MASS)
 require(psych) #for phi coeff
-mxOption(NULL, 'Default optimizer', 'NPSOL')
+require(ggpubr)
+
 source('http://ibg.colorado.edu/cdrom2016/verhulst/Power/powerFun.R')
 #see http://www.people.vcu.edu/~bverhulst/power/powerScript.R
+#mxOption(NULL, 'Default optimizer', 'NPSOL') #?? this gets 'could not find function mxOption'
 ```
 ```{r readdata, echo=FALSE}
 #---------------------------------------------------------------
 #Read data before any text as need to refer to Ns etc computed here.
-#Version of redcap output from 9 May has zygosity for one pair where it had been wrongly coded 9
+#Version from April 2019 includes LI indices using means rather than peaks, and also has measure of
+#cross-trial consistency
 #---------------------------------------------------------------
 mydir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/"
-myfile<-"TwinsData_DATA_2018-05-09_1021.csv"
-mydata<-read.csv(paste0(mydir,"Data/",myfile),stringsAsFactors = FALSE)
+myfile<-"TwinsData_DATA_2019-04-12_1525.csv"
+mydata<-read_csv(paste0(mydir,"Data/",myfile))
+#str(mydata)
 w<-which(colnames(mydata)=='include')  #this relates to exclusion criteria re IQ,autism etc : not used here
 colnames(mydata)[w]<-'myinclude' #to avoid problems with having 'include' as column name
 ```
 
-```{r converthanddata,echo=FALSE}
-#-------------------------------------------------------
-# Created jittered values of QHP and EHP for plots
-#-------------------------------------------------------
-mydata$qhp_handedness<-mydata$qhp_freq_r+.5*mydata$qhp_freq_e
-mydata$ehp_jitter <-jitter(mydata$ehp_handedness,2) #last term 2 gives greater jitter than default
-mydata$qhp_jitter <-jitter(mydata$qhp_handedness,2)
+```{r makeLIcat}
+mydata$lat_index<-as.numeric(mydata$myli_mean)  #the original laterality_index value in file is LI from peak
+#my_li_mean was added in April 2019
+mydata$myse_mean<-as.numeric(mydata$myse_mean)
+mydata$my_li_mean_even<-as.numeric(mydata$my_li_mean_even)
+mydata$my_li_mean_odd<-as.numeric(mydata$my_li_mean_odd)
 
+mydata$qhp_handedness<-mydata$qhp_freq_r+.5*mydata$qhp_freq_e
+
+#categorise laterality as 1=L, 2=bi, 3 = R depending on whether mean value is outside 1.96*SE limit
+#NB can use 1.96 or 1.65 here, but 1.96 is same as used by Wilson and Bishop
+CIterm<-1.96
+mydata$li_cat<-NA
+w<-which(mydata$lat_index>0)
+mydata$li_cat[w]<-1 #default is L laterlised for those with +ve values
+x<-mydata$lat_index[w]-CIterm*mydata$myse_mean[w]
+#need to be careful here re indices - we are now working with the w subset and finding which are -ve
+y<-which(x<0)
+w1<-w[y] #these should be the indices from the original full file with L sided lat but large SE -> bilateral
+mydata$li_cat[w1]<-2
+
+#Now do the same for R lateralised
+w<-which(mydata$lat_index<0)
+mydata$li_cat[w]<-3 #default is R lateralised for those with -ve values
+x<-mydata$lat_index[w]+CIterm*mydata$myse_mean[w] #this time we add the 1.96*SE term
+#need to be careful here re indices - we are now working with the w subset and finding which are -ve
+y<-which(x>0)
+w1<-w[y] #these should be the indices from the original full file with R sided lat but large SE -> bilateral
+mydata$li_cat[w1]<-2
+
+#temp<-dplyr::select(mydata,lat_index,myse_mean,li_cat) #view temp to check output
+temp<-filter(mydata,n_trials>11) #same as Wilson and bishop, have at least 12 trials
+table(temp$li_cat,temp$lateralised_category)
+#Mean method gives more bilateral cases - I guess not surprising. 
+
+#check correlation between old and new LI methods
+oldnewLIcor<-cor(temp$laterality_index,temp$lat_index,use='pairwise.complete.obs')
+oldnewLIcordf<-length(temp)-2
+
+#check split half reliablity
+splithalfr<-cor(temp$my_li_mean_even,temp$my_li_mean_odd,use='pairwise.complete.obs')
+```
+```{r multitasklat}
 #-------------------------------------------------------
 # Create a variable that has categorical laterality for 2 handedness tasks and LI
 #-------------------------------------------------------
-mydata$lat3<-3
-w<-which(mydata$qhp_handedness<11&mydata$ehp_handedness<6&mydata$lateralised_category<1)
-mydata$lat3[w]<-2 #reversed laterality
-w<-which(mydata$qhp_handedness>10.5&mydata$ehp_handedness>5.5&mydata$lateralised_category>0)
+mydata$lat3<-2 #default is mixed laterality = 2
+w<-which(mydata$qhp_handedness<11&mydata$ehp_handedness<6&mydata$li_cat>1)
+mydata$lat3[w]<-3 #reversed laterality - all either bilat or R
+w<-which(mydata$qhp_handedness>10.5&mydata$ehp_handedness>5.5&mydata$li_cat==1)
 mydata$lat3[w]<-1 #typical laterality
+
+#also just do a count of N tasks in conventional direction - taskssum
 mydata$taskssum<-0
 w<-which(mydata$qhp_handedness>10)
 mydata$taskssum[w]<-mydata$taskssum[w]+1 
-
-#also just do a count of N tasks in conventional direction - taskssum
 w<-which(mydata$ehp_handedness>5)
 mydata$taskssum[w]<-mydata$taskssum[w]+1 
-w<-which(mydata$lateralised_category>0)
+w<-which(mydata$li_cat==1)
 mydata$taskssum[w]<-mydata$taskssum[w]+1 
 
-w<-which(is.na(mydata$lateralised_category))
+w<-which(is.na(mydata$li_cat))
 mydata$lat3[w]<-NA
 mydata$taskssum[w]<-NA
-mydata$taskssum_jitter<-jitter(mydata$taskssum,2)
 
 ```
 
@@ -77,7 +115,7 @@ mydata$taskssum_jitter<-jitter(mydata$taskssum,2)
 # Produce data frame of selected columns 
 #----------------------------------------------------------
 data.short<-filter(mydata,zygosity<9)
-data.short<-dplyr::select(mydata,record_id,fam_id,age_at_test,female,zygosity,n_language_low,myinclude,twin,n_trials, laterality_index,qhp_handedness,ehp_handedness,lang_probs,lateralised_category,lat3,ehp_jitter,qhp_jitter,taskssum,taskssum_jitter)
+data.short<-dplyr::select(mydata,record_id,fam_id,age_at_test,female,zygosity,n_language_low,myinclude,twin,n_trials, lat_index,qhp_handedness,ehp_handedness,lang_probs,li_cat,lat3,ehp_handedness,qhp_handedness,taskssum)
 #identify cases to exclude because of less than 12 trials on doppler
 w<-c(which(data.short$n_trials<12),which(is.na(data.short$n_trials)))
 data.short$doppexcl <- 0
@@ -103,11 +141,32 @@ doubledata$MZDZ<-2
 w<-which(doubledata$zygosity==1)
 doubledata$MZDZ[w]<-1
 
-#add a colour code to identify whether gender  MM or MF or FF
-doubledata$gender2 <-1+doubledata$female+doubledata$female2
+#add a column code to identify whether gender  MM or MF or FF
+doubledata$gender2 <-as.factor(1+doubledata$female+doubledata$female2)
 #check all aligned
 check<-sum(doubledata$fam_id-doubledata$fam_id2)
 if(check>0) {print('Twins not aligned!!!')}
+
+doubledata$langpair <- paste0(doubledata$lang_probs,doubledata$lang_probs2)
+mylangtab <- table(doubledata$langpair[1:(nrow(doubledata)/2)])
+doubledata$langconcord <-2
+w <-which(doubledata$lang_probs==0)
+doubledata$langconcord[w] <-1
+w <-which(doubledata$lang_probs2==0)
+doubledata$langconcord[w] <-1
+w1<- which(doubledata$langpair=='00')
+doubledata$langconcord[w1] <-0
+conc.table<-table(doubledata$MZDZ,doubledata$langconcord,doubledata$twin)
+par(mfrow=c(1,2))
+par(mar=c(0,0,1,0))
+slices <- conc.table[1,2:3,1]
+#lbls <- c("One twin","Both twins")
+lbls <-c('','')
+pie(slices, labels=lbls, main="Language concordance: \nIdentical twins")
+slices <- conc.table[2,2:3,1]
+
+pie(slices, labels =lbls, main="Language concordance: \nNonidentical twins")
+
 ```
 
 ```{r exclusions, echo=FALSE}
@@ -121,11 +180,11 @@ w<-which(doubledata$doppout==2)
 doubledata$doppout[w]<-1
 
 #remove case of extreme LI, defined as +/-10
-w<-c(which(abs(doubledata$laterality_index)>12),which(abs(doubledata$laterality_index2)>12))
-doubledata$doppout[w]<-1 #picks up case with LI of -15,which is more than 5 SD from mean!
+w<-c(which(abs(doubledata$lat_index)>12),which(abs(doubledata$lat_index2)>12))
+doubledata$doppout[w]<-1 #picks up case with LI of -21,which is more than 5 SD from mean!
+#There seems no good reason for this extreme score- data look clean! But so extreme best removed.
 
 doubledata2<-filter(doubledata,doppout<1)
-
 
 #unit of analysis is twin pair excluded, so need to divide by 2 as one row per twin
 
@@ -136,13 +195,15 @@ Npairwithdopp<-nrow(doubledata2)/2
 ##Abstract
 
 ## Introduction
-Lateralisation of language and motor function in humans are traits with two notable features: First, there is a pronunced population bias to one side - to the left for lateralisation of language in the brain, and to the right for handedness; Second there is individual variation in the extent of bias, with some individuals showing a reversal of the typical pattern, and others showing little or no asymmetry.
+Lateralisation of language and motor function in humans are traits with two notable features: First, there is a pronunced population bias to one side - to the left for lateralisation of language in the brain, and to the right for handedness; Second there is individual variation in the extent of bias; a minority of individuals show a reversal of the typical pattern, and others show little or no asymmetry.
 
 Other primates show some indications of lateralised functions, but humans are quite distinctive in their strong population bias to right-handedness. It is often assumed that evolution of manual laterality is related to development of a complex and lateralised language faculty in humans, but the biological origins of the population bias are not well understood for either trait. 
 
-Twins provide a useful natural experiment for estimating the contribution of genetic variation to individual differences in a trait. The twin method uses comparisons of similarity of identical (monozygotic or MZ) twins versus non-identical (dizygotic or DZ twins) to derive estimates of the relative contributions of genetic variants, environment shared by the twins, and other twin-specific influences (including chance) on individual variation in a trait. This is best understood intuitively by imagining a variety of hypothetical situations. In the first, the trait is solely determined by random chance: in that case, two members of a twin pair (A and B) would be no more similar than two unrelated people, and in a sample of twins, the correlation between twin A and twin B would be zero, regardless of zygosity. In the second situation, the trait is solely determined by an environmental factor common to both twins, such as home environment. In that case, there would be perfect correlation between the traits in twin A and twin B. In the third situation, the trait is determined solely by genes: because MZ twins are genetically identical, the correlation between two members of a twin pair will be 1, but for DZ twins, who on average have 50% of their segregating genes in common, the correlation will be .5. In practice, our goal is not to attribute variation in the observed trait (phenotype) to one cause or the other, but rather to assume their effects are additive and estimate their relative contribution. We specify that the total variance in a trait, v is equal to a^2^ + c^2^ + e^2^, where a is additive genetic variance, c is shared (common) environment and e is random, nonshared environment. Similarity between pairs of MZ twins is the sum of genetic and shared environmental influences, a^2^ + c^2^, and similarity between pairs of DZ twins is .5 a^2^ + c^2^, so we can estimate heritability (a^2^) as twice the difference in correlation between MZ and DZ twins, and then obtain the values for c^2^ and e^2^ by simple algebra (Sham, 1998).
+Twins provide a useful natural experiment for estimating the contribution of genetic variation to individual differences in a trait. The twin method uses comparisons of similarity of identical (monozygotic or MZ) twins versus non-identical (dizygotic or DZ twins) to derive estimates of the relative contributions of genetic variants, environment shared by the twins, and other twin-specific influences (including chance) on individual variation in a trait. This is best understood intuitively by imagining a variety of hypothetical situations. In the first, the trait is solely determined by random chance: in that case, two members of a twin pair (A and B) would be no more similar than two unrelated people, and in a sample of twins, the correlation between twin A and twin B would be zero, regardless of zygosity. In a second fictitious scenario, the trait is solely determined by an environmental factor common to both twins, such as home environment. In that case, there would be perfect correlation between the traits for twin A and twin B. In the third scenario, the trait is determined solely by genes: because MZ twins are genetically identical, the correlation between two members of a twin pair will be 1, but for DZ twins, who on average have 50% of their segregating genes in common, the correlation will be .5. 
 
-Twin studies of manual laterality have shown that, contrary to conventional wisdom, individual differences in handedness are largely determined by chance, with genetic variation playing a relatively minor role. A meta-analysis of twin studies estimated heritability of around .23, with shared environment effect of zero. Studies of language laterality are far less numerous, because of the difficulty and expense of studying large numbers of twins. Table 1 summarises results from studies that have looked at structural and functional asymmetries in twins, and one can see that the estimates of heritability are again low, and in keeping with those previously reported for handedness.
+In practice, our goal is not to attribute variation in the observed trait (phenotype) to one cause or the other, but rather to assume their effects are additive and estimate their relative contribution. We specify that the total variance in a trait, v is equal to a^2^ + c^2^ + e^2^, where a is additive genetic variance, c is shared (common) environment and e is random, nonshared environment. Similarity between pairs of MZ twins is the sum of genetic and shared environmental influences, a^2^ + c^2^, and similarity between pairs of DZ twins is .5 a^2^ + c^2^, so we can estimate heritability (a^2^) as twice the difference in correlation between MZ and DZ twins, and then obtain the values for c^2^ and e^2^ by simple algebra (Sham, 1998).
+
+Twin studies of manual laterality have shown that, contrary to conventional wisdom, individual differences in handedness are largely determined by chance, with genetic variation playing a relatively minor role. A meta-analysis of 35 twin studies estimated heritability of around .23, with shared environment effect of zero (Medland, 2006). Studies of language laterality are far less numerous, because of the difficulty and expense of studying large numbers of twins. Table 1 summarises results from studies that have looked at structural and functional asymmetries in twins, and one can see that the estimates of heritability are again low, and in keeping with those previously reported for handedness.
 
 To do: Table 1 - summary of studies of structural/functional asymmetry
 
@@ -180,27 +241,29 @@ DNA was available for 191 twin pairs who were compared across 250,875 SNPs. All 
 ###Laterality assessment
 1. Handedness
 
-Hand preference was assessed using a hand preference battery based on items from the Edinburgh Handedness Inventory (EHI) (Oldfield, 1971), modified to exclude one item (striking a match) deemed unsuitable for children. The child was asked to demonstrate each of ten actions: writing, drawing, throwing a ball, using scissors, using toothbrush, cutting with a knife, using a spoon, using a broom (upper hand), taking the lid off a box, and dealing cards. One point was awarded for exclusive right hand use, zero points for left hand use, and half a point if both hands were used, giving a score ranging from zero to ten.
+Hand preference was assessed using a hand preference battery based on items from the Edinburgh Handedness Inventory (EHI) (Oldfield, 1971), modified to exclude one item deemed unsuitable for children (striking a match). Children were asked to demonstrate each of ten actions: writing, drawing, throwing a ball, using scissors, using toothbrush, cutting with a knife, using a spoon, using a broom (upper hand), taking the lid off a box, and dealing cards. One point was awarded for exclusive right hand use, zero points for left hand use, and half a point if both hands were used, giving a score ranging from zero to ten.
 
-Strength of hand preference was assessed using the Quantification of Hand Preference (QHP) task (Bishop et al., 1996), which measures the tendency to continue to use the preferred hand when cards are picked up from different spatial locations. Three cards are set out in each of seven positions extending at 30 degree intervals from the left to the right of the child’s midline. The child is not told that handedness is being assessed, and treats the task as a picture-name matching game, where they have to pick up the named card and put it in the box. The same quasi-random order of positions was used for all children, starting with a card at the midline and continuing until the child had picked up and placed  three cards at each of seven locations, to give a total of 21 trials. For each card, two points were awarded for right-handed use, zero points for left-handed use, and one point if the card was transferred from one hand to another in the course of placing it in the box.
+Strength of hand preference was assessed using the Quantification of Hand Preference (QHP) task (Bishop et al., 1996), which measures the tendency to continue to use the preferred hand when cards are picked up from different spatial locations. Three cards are set out in each of seven positions extending at 30 degree intervals from the left to the right of the child’s midline. The child is not told that handedness is being assessed, and treats the task as a picture-name matching game, where they have to pick up the named card and put it in a centrally-placed box. The same quasi-random order of positions was used for all children, starting with a card at the midline and continuing until the child had picked up and placed  three cards at each of seven locations, to give a total of 21 trials. For each card, two points were awarded for right-handed use, zero points for left-handed use, and one point if the card was transferred from one hand to another in the course of placing it in the box.
 
 2. Language laterality
 
-Language laterality was assessed using functional transcranial Doppler ultrasound (fTCD) while the child described short episodes from a story presented as an animation. A video demonstration of this procedure is available from Bishop et al (2010). Transcranial Doppler ultrasound is used in medical contexts to assess the integrity of the cerebral blood vessels.  For assessing cerebral lateralisation, left and right ultrasound probes are attached to a headset so as to detect lateralised changes in blood flow in the middle cerebral arteries. 
+Language laterality was assessed using functional transcranial Doppler ultrasound (fTCD) while the child described short episodes from a story presented as an animation. A video demonstration of this procedure is available from Bishop et al (2010). Transcranial Doppler ultrasound is used in medical contexts to assess the integrity of the cerebral blood vessels.  For assessing cerebral lateralisation, left and right ultrasound probes are attached to a headset and positioned so as to detect lateralised changes in blood flow in the middle cerebral arteries. 
 
 On each trial, the child silently views a 12 s clip from a cartoon that included sounds but no speech. A response cue appears when the video clip finishes to indicate the start of a 10 s period during which the child is asked to describe what happened in the cartoon. A second cue then indicates that the child should stop talking and relax. This paradigm has previously been found to have good validity and reliability (Bishop et al. 2009).
 
 A maximum of 30 trials was administered, depending on the child's tolerance of the procedure. The child's verbal responses were recorded and subsequently transcribed, and the examiner noted behaviour during the procedure.  Trials were excluded if the child either spoke during a silent period, or failed to talk during the 'talk' period: these need to be omitted because they invalidate the trial, which involves comparing the period when the child talks with a baseline period when no talking occurs. 
 
-The analysis of the animation task data consists of a standard sequence of processing steps, following original work by Deppe  et al (1997). We used a custom script written in R () for data processing. This included an initial step of identifying trials where there was very brief signal dropout (affecting one datapoint) and interpolate the mean value in such cases. Trials with more prolonged signal dropout were discarded. After these preliminary steps, heart cycle integration was applied to remove the heartbeat, followed by signal normalisation, artefact rejection, epoching and baseline correction.The averaged left and right velocity plots were subtracted to give a difference waveform, and the peak difference (maximum or minimum) was located within a period of interest, predefined as 4 to 14 seconds after the cue to speak. The laterality index (LI) is then computed as the mean amplitude of mean blood flow velocity difference in a 2 sec window centred on the peak difference value. 
+The analysis of the animation task data consists of a standard sequence of processing steps, following original work by Deppe et al (1997). We used a custom script written in R (R core team, 2013) for data processing. This included an initial step of identifying trials where there was very brief signal dropout (affecting one datapoint) and interpolate the mean value in such cases. Trials with more prolonged signal dropout were discarded. After these preliminary steps, heart cycle integration was applied to remove the heartbeat, followed by signal normalisation, artefact rejection, epoching and baseline correction.The averaged left and right velocity plots were subtracted to give a difference waveform.
+
+In our previous report of data from this sample, we used the conventional approach for obtaining a laterality index based on the peak difference (maximum or minimum) in a period of interest, predefined as 4 to 14 seconds after the cue to speak. Our subsequent studies suggested that this method is not ideal, because there are cases where the difference wave shifts from positive to negative, or vice versa, within the period of interest, and quite minor difference in size of positive and negative peaks can determine whether laterality is coded as left or right.  Accordingly, in more recent studies, we have calculated a laterality index (LI) as the mean amplitude of blood flow velocity difference in the whole period of interest. The correlation between this mean-based LI and the traditional peak-based LI is very strong: Pearson correlation = `r round(oldnewLIcor,3)`, DF = `r oldnewLIcorDF`, but the distributions differ. The split-half reliability, based on correlation if LIs from odd and even trials is closely similar for the two methods, r = `r round(splithalfr,2)`. The conventional method, however, gives a non-normal distribution of laterality indices, with a point of rarity around zero, which appears to be a spurious artefact of the method of computation.
 
 Following Groen et al (2012) we excluded data from children who had fewer than 12 accepted trials, as the LI is likely to be unreliable when based on such a small amount of data. In addition, data were excluded for one twin pair where one child's laterality index was more than 5 SD from the mean. 
 
-The standard error of the LI for an individual was computed by considering the size of LI at the same peak latency across all trials. This makes it possible to consider whether the LI is significantly different from zero. Where this was the case, laterality can be categorised as left or right, and where the LI was not significantly different from zero, the laterality is coded as bilateral. Note that coding of bilateral laterality can result if data are merely noisy.
+The standard error of the LI for an individual was computed from the LI obtained across individual trials. This allowed us to consider whether the LI was significantly different from zero, i.e. whether the 95% confidence interval spanned zero. Where this was the case, laterality was categorised as left or right, and where the LI was not significantly different from zero, the laterality was coded as bilateral. Note that coding of bilateral laterality can result if data are merely noisy.
 
 3. Consistency of manual/language laterality.
 
-Prominent genetic theories by Annett () and McManus () have proposed that observed distributions of handedness are the result of a mixture of two underlying genotypes: one that shows a population bias and the other that has handedness randomly determined. If the typical bias affected both manual and language laterality, this should lead to  a typical pattern of right-handedness and left-brainedness for language; the greater the departure from this pattern, the greater the likelihood that the individual has the atypical, unbiased genotype. To evaluate this idea, individuals were categorised as typical or atypical on each measure, and an overall measure derived consisting of the number of tasks with typical laterality (R for handedness and L for language). For the language measure, left-lateralisation was coded when the 95% confidence interval around the LI did not include zero. For the handedness measure, R-handedness was coded when more actions/reaches were performed with the R than with the L.
+Prominent genetic theories by Annett (1985) and McManus (1985) have proposed that observed distributions of handedness are the result of a mixture of two underlying genotypes: one that shows a population bias and the other that has handedness randomly determined. If the typical bias affected both manual and language laterality, this should lead to a typical pattern of right-handedness and left-brainedness for language; the greater the departure from this pattern, the greater the likelihood that the individual has the atypical, unbiased genotype. To evaluate this idea, individuals were categorised as typical or atypical on each measure, and an overall measure derived consisting of the number of tasks with typical laterality (R for handedness and L for language). For the language measure, left-lateralisation was coded when the LI was positive and the 95% confidence interval around the LI did not include zero. For the handedness measure, R-handedness was coded when more actions/reaches were performed with the right hand than with the left.
 
 ## Procedure  
 (This section is copied from Wilson & Bishop, 2018). Ethical approval was obtained for the study in 2011 from the Berkshire NHS Research Ethics Committee (reference 11/SC/0096), and data collection started in August of that year, finishing in October 2016. Where families had expressed interest in the study, they were interviewed by telephone to assess whether the children were likely to meet inclusion criteria, and an appointment was made to see the twins at home or at school, depending on parental preference. Families were widely dispersed around the UK, including Northern Ireland, Scotland, Wales and England, so testing was scheduled where possible to minimise travel. During the course of recruitment, which lasted for a period of five years, a total of eight research assistants as well as the senior author were involved in assessing children. In some cases, two testers worked together, each seeing one twin, and in others a single tester saw both children sequentially. The assessment was conducted in a single session lasting between 2-3 hours per child, with breaks where needed.
@@ -297,7 +360,7 @@ if (powertable[thisrow,5]<0){thisaa<-thisrow}
 ## Data analysis
 1. Power analysis
 
-As noted above, the usual approach to twin analysis is ACE decomposition, typically implemented using structural equation modeling with maximum likelihood estimates (Rijsdijk & Sham, 2002). Large samples are needed to accurately estimate additive genetic (a^2^), shared environmental (c^2^) influences, both of which lead to positive covariance between two members of both MZ and DZ pairs: they are distinguished by the fact that genetic influence leads to greater covariance for MZ and DZ twins. In the context of laterality, however, estimates of shared environmental influences are negligible in adequately powered twin studies, and it is safe to ignore the c^2^ term. This simplifies the analysis, making it possible to detect genetic effects with smaller samples. A power analysis using a modified version of the powerFun function in OpenMx showed that for the larger sample of twins for whom handedness data were available, there is power to detect heritability, a^2^, of `r round(myaa[1]^2,2)` or greater, and for the smaller sample with language laterality data, an effect of `r round(myaa[2]^2,2)` or greater is detectable.
+As noted above, the usual approach to twin analysis is ACE decomposition, typically implemented using structural equation modeling with maximum likelihood estimates (Rijsdijk & Sham, 2002). Large samples are needed to accurately estimate additive genetic (a^2^), shared environmental (c^2^) influences, both of which lead to positive covariance between two members of both MZ and DZ pairs: they are distinguished by the fact that genetic influence leads to greater covariance for MZ and DZ twins. In the context of laterality, however, prior studies have found shared environmental influences to be negligible in adequately powered twin studies, and it is safe to ignore the c^2^ term. This simplifies the analysis, making it possible to detect genetic effects with smaller samples. A power analysis using a modified version of the powerFun function in OpenMx showed that for the larger sample of twins for whom handedness data were available, there is power to detect heritability, a^2^, of `r round(myaa[1]^2,2)` or greater, and for the smaller sample with language laterality data, an effect of `r round(myaa[2]^2,2)` or greater is detectable.
 (Note to self: these values seem way too low! - need to check with verhulst method involving noncentrality parameter)
 
 2. AE modeling
@@ -307,67 +370,70 @@ As noted above, the usual approach to twin analysis is ACE decomposition, typica
 ## Results
 Figure 1 shows scatterplots depicting the association of the laterality indices between two members of a twin pair; there is no indication of any association between the LI indices for two members of a twin pair.  
 
+```{r scatterfunction,echo=FALSE}
+makescatter <- function(mytitle,xpos,ypos,filetitle){
+ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
+                 shape = "Zygosity"    ,                         # Change point shape by groups 
+            color = "Zygosity", palette = get_palette("aaas", 2),           # Color by groups 
+            title = mytitle
+          )+
+  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman') 
+ggsave(filetitle,width=4,height=4)
+return()
+}
+
+```
 
 ```{r scatterplot,echo=FALSE}
 #------------------------------------------------------------------------
 #scatterplot and correlation by zygosity as MZ/DZ: do for LI and handedness measures
 #------------------------------------------------------------------------
+#Use the makescatter function defined above for all the plots
 
-par(mfrow=c(1,2),oma = c(0, 0, 2, 0)) #oma sets margins to allow for overall header
-task<-c('Edinburgh Handedness Inventory','QHP','Laterality Index (fTCD)','taskssum')
-pchcode <- c(3,9,5) #symbols to correspond to MM, FF and MF pairs
-tasklims <- matrix(c(-1,11,5,3,4,
-                     -1,22,10,5,6,
-                     -6,11,0,6,-5,
-                     -1,4,1.5,3,4),nrow=4,byrow=TRUE) #axis limits for 3 tasks, then bilateralpoint, then x and y position for correl coeff
-ehicols<-which(names(doubledata)%in%c('ehp_jitter','ehp_jitter2'))
-qhpcols<-which(names(doubledata)%in%c('qhp_jitter','qhp_jitter2'))
-licols<-which(names(doubledata)%in%c('laterality_index','laterality_index2'))
-taskcols<-which(names(doubledata)%in%c('taskssum_jitter','taskssum_jitter2'))
-mycols<-rbind(ehicols,qhpcols,licols,taskcols)
-for (j in 1:4){ #2 handedness measures and LI from Doppler
-  plotdata<-doubledata
-  if(j>2){plotdata<-doubledata2}
-for (i in 1:2){
-  mymain='MZ: '
-  if (i==2){mymain='DZ: '}
-  tempdat <-filter(plotdata,MZDZ==i)
-  #correlation from double entry gives ICC
-  rlat<-cor(tempdat[,mycols[j,1]],tempdat[,mycols[j,2]],method='spearman')
-  mysub<-paste0('rho =',toString(round(rlat,3))) #text with correl coeff to 3 places
-  #would like greek letter! expression(rho) did not work!
-  tempdat1<-filter(tempdat,twin==1) #because of double entry, just use twin1
-  #------------------------------------------------------------------------------
-  #for opposite sex twins, reorganise so that male is twin 1 and female twin 2
-  #------------------------------------------------------------------------------
- #This is just to help visualise the plot: reassignment is not retained for later   analysis
-   if (i==2){
-    w <- which(tempdat1$zygosity==3 & tempdat1$female==1)
-  tempbit <- tempdat1[w,mycols[j,1]]
-  tempdat1[w,mycols[j,1]]<-tempdat1[w,mycols[j,2]]
-    tempdat1[w,mycols[j,2]]<-tempbit
-   }
-   #Now plot MZ and DZ values for twin 1 and twin 2
-  #------------------------------------------------------------------------------
-  thisx<-tempdat1[,mycols[j,1]]
-  thisy<- tempdat1[,mycols[j,2]]
-  #attempt to see if inverting scale and taking exponential changes things
-  # mymax<-max(c(thisx,thisy))-1
-  # thisx<-exp(mymax-thisx)
-  # thisy<-exp(mymax-thisy)
-  #   rlat<-cor(thisx,thisy,method='spearman')
-    
-  mymain=paste0(mymain,'N = ',nrow(tempdat1),' pairs')
-  plot(thisx, thisy,xlim=tasklims[j,1:2],ylim=tasklims[j,1:2],pch=pchcode[tempdat$gender2],
-       xlab='Twin 1',ylab='Twin 2',main=mymain,cex.lab=1.2)
-  text(tasklims[j,4],tasklims[j,5],mysub,col='red',font=2)
-  abline(h=tasklims[j,3],col=4,lty=2)
-  abline(v=tasklims[j,3],col=4,lty=2)
-  mtext(task[j], outer = TRUE, cex = 1.5)
-}
-}
-# After re-ordering as above,for the opposite sex group, male is twin 1 and female is twin 2. Need to explain that in the legend as well as use of jitter.
-#dev.off() #needed to turn off printing to external pdf etc
+
+
+doubledata$Zygosity<-as.factor(doubledata$MZDZ) #Initial caps for version that is factor with 2 values
+levels(doubledata$Zygosity)<-c('MZ','DZ')
+singlerows<-nrow(doubledata)/2
+
+#EHI plot
+myjitter<-rnorm(nrow(doubledata))/3
+doubledata$myx<-doubledata$ehp_handedness+myjitter
+myjitter<-rnorm(nrow(doubledata))/3
+doubledata$myy<-doubledata$ehp_handedness2+myjitter
+mytitle<-'Edinburgh Handedness Inventory'
+xpos<-3 #coordinates for correlation on plot
+ypos<-c(1,2)
+filetitle<-'ehiplot.png'
+makescatter(mytitle,xpos,ypos,filetitle)
+###########################################################################################
+#QHP plot
+myjitter<-rnorm(nrow(doubledata))/3
+doubledata$myx<-doubledata$qhp_handedness+myjitter
+myjitter<-rnorm(nrow(doubledata))/3
+doubledata$myy<-doubledata$qhp_handedness2+myjitter
+mytitle<-'Quantification of Hand Preference'
+xpos<-0 #coordinates for correlation on plot
+ypos<-c(7,5)
+filetitle<-'qhpplot.png'
+makescatter(mytitle,xpos,ypos,filetitle)
+
+###########################################################################################
+#LI plot
+w<-which(doubledata$doppout==1)
+doubledata$lat_index[w]<-NA #this removes outlier value 
+doubledata$lat_index2[w]<-NA
+doubledata$myx<-doubledata$lat_index #no need for jitter with LI
+doubledata$myy<-doubledata$lat_index2
+mytitle<-'Laterality Index (fTCD)'
+xpos<-4 #coordinates for correlation on plot
+ypos<-c(10,9)
+filetitle<-'LIplot.png'
+makescatter(mytitle,xpos,ypos,filetitle)
+
+
+###########################################################################################
+
 ```
 
 ```{r testnormality}
@@ -380,8 +446,8 @@ shapiro.test(doubledata$ehp_handedness)
 qqnorm(doubledata$ehp_handedness)
 shapiro.test(doubledata$qhp_handedness)
 qqnorm(doubledata$qhp_handedness)
-shapiro.test(doubledata$laterality_index)
-qqnorm(doubledata$laterality_index)
+shapiro.test(doubledata$lat_index)
+qqnorm(doubledata$lat_index)
 shapiro.test(doubledata$taskssum)
 qqnorm(doubledata$taskssum)
 }
@@ -434,7 +500,7 @@ nv <- 1 #N variables
 ntv <- nv*2 #N columns (twins)
 aatable <-data.frame(matrix(NA,nrow=3,ncol=6))
 colnames(aatable)<-c('Measure','N MZ','N DZ','a','a.SE','a^2')
-mxcols <-matrix(c('ehp_handedness','ehp_handedness2','qhp_handedness','qhp_handedness2','laterality_index','laterality_index2'),nrow=3,byrow=TRUE)
+mxcols <-matrix(c('ehp_handedness','ehp_handedness2','qhp_handedness','qhp_handedness2','lat_index','lat_index2'),nrow=3,byrow=TRUE)
 for (mytask in 1:3){
 selVars <- mxcols[mytask,1:2]
 latcols<-which(names(doubledata)%in%selVars)
@@ -484,7 +550,7 @@ aatable[mytask,4]<-pars[1,1]
 aatable[mytask,5]<-pars[1,2]
 aatable[mytask,6]<-round(pars[1,1]^2,2)
 }
-stargazer(aatable,type='text',title='Table 3: Heritability estimates for different measures:\n standard ACE ignoring nonnormality',summary=FALSE)
+stargazer(aatable,type='text',title='Table 3: Heritability estimates from AE model for different measures: ignoring nonnormality',summary=FALSE)
 
 #NB all tasks have been scaled; skew in the handedness measures has not been accounted for
 ```
@@ -506,9 +572,9 @@ my.dz<-filter(myehp[1:npair,],MZDZ==2)
 mypolytab.dz<-table(my.dz$ehp_handedness,my.dz$ehp_handedness2)
 mypoly.mz<-polychoric(mypolytab.mz)$rho
 mypoly.dz<-polychoric(mypolytab.dz)$rho
-print('Polychoric correlations (rho)')
-mypoly.mz
-mypoly.dz
+print('Polychoric correlations MZ/DZ (rho)')
+print(c(mypoly.mz,mypoly.dz))
+
 
 myqhp<-dplyr::select(doubledata,MZDZ,ehp_handedness,ehp_handedness2)
 npair<-nrow(myehp)
@@ -684,8 +750,18 @@ legend(6, -.5, legend=c('dk','writing','other uni','multiple','skill','self-repo
 ```{r sessinfo}
 sessionInfo()
 ```
-##Useful references
+##References
+
+Annett, M. (1985). Left, right, hand and brain: the Right Shift Theory. Hillsdale, NJ: Erlbaum.
+
+McManus , I. C. (1985). Handedness, language dominance and aphasia: a genetic model. Psychological Medicine, Monograph Supplement, 8. 
+
 Medland, S. E., Duffy, D. L., J.Wright, M., Geffen, G. M., Hay, D. A., Levy, F., . . . Boomsma, D. I. (2009). Genetic influences on handedness: Data from 25,732 Australian and Dutch twin families. Neuropsychologia, 47, 330-337. 
+
 Medland, S. E., Duffy, D. L., Wright, M. J., Geffen, G. M., & Martin, N. G. (2006). Handedness in twins: Joint analysis of data from 35 samples. Twin Research and Human Genetics, 9, 46-53. 
+
+R Core Team (2013). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria
+
 Turkheimer E. (2000). Three laws of behavior genetics and what they mean. Current Directions in Psychological Science, 9, 160–164. 
+
 Tenesa A., Haley C. S. (2013). The heritability of human disease: Estimation, uses and abuses. Nature Reviews Genetics, 14, 139–149.
