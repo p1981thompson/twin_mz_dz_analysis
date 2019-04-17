@@ -36,6 +36,7 @@ source('http://ibg.colorado.edu/cdrom2016/verhulst/Power/powerFun.R')
 #cross-trial consistency
 #---------------------------------------------------------------
 mydir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/"
+#mydir<-"c:/Users/pthompson/Dropbox/project twin kids/Project_files/"
 myfile<-"TwinsData_DATA_2019-04-12_1525.csv"
 mydata<-read_csv(paste0(mydir,"Data/",myfile))
 #str(mydata)
@@ -371,13 +372,14 @@ As noted above, the usual approach to twin analysis is ACE decomposition, typica
 Figure 1 shows scatterplots depicting the association of the laterality indices between two members of a twin pair; there is no indication of any association between the LI indices for two members of a twin pair.  
 
 ```{r scatterfunction,echo=FALSE}
-makescatter <- function(mytitle,xpos,ypos,filetitle){
+makescatter <- function(mytitle,xpos,ypos,filetitle,vline){
 ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
                  shape = "Zygosity"    ,                         # Change point shape by groups 
             color = "Zygosity", palette = get_palette("aaas", 2),           # Color by groups 
             title = mytitle
           )+
-  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman') 
+  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
+  geom_vline(xintercept=0,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed") 
 ggsave(filetitle,width=4,height=4)
 return()
 }
@@ -405,7 +407,10 @@ mytitle<-'Edinburgh Handedness Inventory'
 xpos<-3 #coordinates for correlation on plot
 ypos<-c(1,2)
 filetitle<-'ehiplot.png'
-makescatter(mytitle,xpos,ypos,filetitle)
+vline=5.5
+makescatter(mytitle,xpos,ypos,filetitle,vline)
+
+
 ###########################################################################################
 #QHP plot
 myjitter<-rnorm(nrow(doubledata))/3
@@ -416,7 +421,8 @@ mytitle<-'Quantification of Hand Preference'
 xpos<-0 #coordinates for correlation on plot
 ypos<-c(7,5)
 filetitle<-'qhpplot.png'
-makescatter(mytitle,xpos,ypos,filetitle)
+vline=11
+makescatter(mytitle,xpos,ypos,filetitle,vline)
 
 ###########################################################################################
 #LI plot
@@ -429,10 +435,69 @@ mytitle<-'Laterality Index (fTCD)'
 xpos<-4 #coordinates for correlation on plot
 ypos<-c(10,9)
 filetitle<-'LIplot.png'
-makescatter(mytitle,xpos,ypos,filetitle)
+vline=0
+makescatter(mytitle,xpos,ypos,filetitle,vline)
 
 
 ###########################################################################################
+
+```
+
+```{r combined plots}
+
+doubledata$Zygosity<-as.factor(doubledata$MZDZ) #Initial caps for version that is factor with 2 values
+levels(doubledata$Zygosity)<-c('MZ','DZ')
+singlerows<-nrow(doubledata)/2
+
+#EHI plot
+myjitter<-rnorm(nrow(doubledata))/3
+doubledata$myx<-doubledata$ehp_handedness+myjitter
+myjitter<-rnorm(nrow(doubledata))/3
+doubledata$myy<-doubledata$ehp_handedness2+myjitter
+mytitle<-
+xpos<-3 #coordinates for correlation on plot
+ypos<-c(1,2)
+vline=5.5
+
+g1 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
+                 shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
+            title = 'Edinburgh Handedness Inventory')+
+  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
+  geom_vline(xintercept=0,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+myjitter<-rnorm(nrow(doubledata))/3
+doubledata$myx<-doubledata$qhp_handedness+myjitter
+myjitter<-rnorm(nrow(doubledata))/3
+doubledata$myy<-doubledata$qhp_handedness2+myjitter
+xpos<-0 #coordinates for correlation on plot
+ypos<-c(7,5)
+vline=11
+
+g2 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
+                 shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
+            title = 'Quantification of Hand Preference')+
+  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
+  geom_vline(xintercept=0,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+w<-which(doubledata$doppout==1)
+doubledata$lat_index[w]<-NA #this removes outlier value 
+doubledata$lat_index2[w]<-NA
+doubledata$myx<-doubledata$lat_index #no need for jitter with LI
+doubledata$myy<-doubledata$lat_index2
+xpos<-4 #coordinates for correlation on plot
+ypos<-c(10,9)
+vline=0
+
+g3 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
+                 shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
+            title = 'Laterality Index (fTCD)')+
+  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
+  geom_vline(xintercept=0,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
+ggarrange(g1,g2,g3,ncol=1,nrow=3,common.legend = TRUE,heights=c(1,1,1))
+ggsave("combined_plot.png",width=4,height=12)
 
 ```
 
