@@ -379,7 +379,7 @@ ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='
             title = mytitle
           )+
   stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
-  geom_vline(xintercept=0,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed") 
+  geom_vline(xintercept=vline,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed") 
 ggsave(filetitle,width=4,height=4)
 return()
 }
@@ -463,7 +463,7 @@ g1 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',
                  shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
             title = 'Edinburgh Handedness Inventory')+
   stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
-  geom_vline(xintercept=0,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
+  geom_vline(xintercept=vline,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 myjitter<-rnorm(nrow(doubledata))/3
 doubledata$myx<-doubledata$qhp_handedness+myjitter
@@ -477,7 +477,7 @@ g2 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',
                  shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
             title = 'Quantification of Hand Preference')+
   stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
-  geom_vline(xintercept=0,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
+  geom_vline(xintercept=vline,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 w<-which(doubledata$doppout==1)
 doubledata$lat_index[w]<-NA #this removes outlier value 
@@ -492,7 +492,7 @@ g3 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',
                  shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
             title = 'Laterality Index (fTCD)')+
   stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
-  geom_vline(xintercept=0,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
+  geom_vline(xintercept=vline,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
