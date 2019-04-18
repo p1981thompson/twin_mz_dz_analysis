@@ -362,7 +362,6 @@ if (powertable[thisrow,5]<0){thisaa<-thisrow}
 1. Power analysis
 
 As noted above, the usual approach to twin analysis is ACE decomposition, typically implemented using structural equation modeling with maximum likelihood estimates (Rijsdijk & Sham, 2002). Large samples are needed to accurately estimate additive genetic (a^2^), shared environmental (c^2^) influences, both of which lead to positive covariance between two members of both MZ and DZ pairs: they are distinguished by the fact that genetic influence leads to greater covariance for MZ and DZ twins. In the context of laterality, however, prior studies have found shared environmental influences to be negligible in adequately powered twin studies, and it is safe to ignore the c^2^ term. This simplifies the analysis, making it possible to detect genetic effects with smaller samples. A power analysis using a modified version of the powerFun function in OpenMx showed that for the larger sample of twins for whom handedness data were available, there is power to detect heritability, a^2^, of `r round(myaa[1]^2,2)` or greater, and for the smaller sample with language laterality data, an effect of `r round(myaa[2]^2,2)` or greater is detectable.
-(Note to self: these values seem way too low! - need to check with verhulst method involving noncentrality parameter)
 
 2. AE modeling
 
@@ -371,17 +370,43 @@ As noted above, the usual approach to twin analysis is ACE decomposition, typica
 ## Results
 Figure 1 shows scatterplots depicting the association of the laterality indices between two members of a twin pair; there is no indication of any association between the LI indices for two members of a twin pair.  
 
+```{r computespearman,echo=FALSE}
+makespearman <- function(thismz,thisdz){
+  #create text with Spearman correlation values.
+#NB need to compute these from *unjittered* data 
+MZrs <- cor(thismz$thisx,thismz$thisy, use="pairwise.complete.obs",method='spearman')
+MZn<-nrow(filter(thismz,!is.na(thisx),!is.na(thisy)))/2 #divide by 2 for N pairs
+DZrs <- cor(thisdz$thisx,thisdz$thisy, use="pairwise.complete.obs",method='spearman')
+DZn<-nrow(filter(thisdz,!is.na(thisx),!is.na(thisy)))/2 #divide by 2 for N pairs
+mylabelbit<-c(paste0('MZ: r (',(MZn-2),') = ',round(MZrs,3)),paste0('DZ: r (',(DZn-2),') = ',round(DZrs,3)))
+for (i in 1:2){
+while(nchar(mylabelbit[i])<18){
+  mylabelbit[i]<-paste0(mylabelbit[i],'0')
+}
+}
+return(mylabelbit)
+}
+```
+
 ```{r scatterfunction,echo=FALSE}
-makescatter <- function(mytitle,xpos,ypos,filetitle,vline){
-ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
-                 shape = "Zygosity"    ,                         # Change point shape by groups 
-            color = "Zygosity", palette = get_palette("aaas", 2),           # Color by groups 
-            title = mytitle
-          )+
-  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
-  geom_vline(xintercept=vline,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed") 
-ggsave(filetitle,width=4,height=4)
-return()
+makescatter <- function(mytitle,xpos,ypos,filetitle,vline,mylabeldf,mylabelbit){
+  g <-ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',
+            xlab='Twin 1',ylab='Twin 2',
+            shape = "Zygosity",
+            # Change point shape by groups 
+            color = "Zygosity", palette = get_palette("aaas", 2),
+            # Color by groups 
+            title = mytitle  )+
+  #  stat_cor(aes(color = Zygosity), label.x =xpos,
+  #           label.y=ypos,method='spearman',show.legend=FALSE) +
+  
+    geom_vline(xintercept=vline,linetype="dashed")+
+    geom_hline(yintercept = vline,linetype="dashed") +
+   annotate("text",label=mylabelbit[1], x = xpos[1],y = ypos[1],size=3)+
+   annotate("text",label=mylabelbit[2], x = xpos[2],y = ypos[2],size=3)
+
+  ggsave(filetitle,width=4,height=4)
+  return(g)
 }
 
 ```
@@ -392,51 +417,72 @@ return()
 #------------------------------------------------------------------------
 #Use the makescatter function defined above for all the plots
 
-
-
 doubledata$Zygosity<-as.factor(doubledata$MZDZ) #Initial caps for version that is factor with 2 values
 levels(doubledata$Zygosity)<-c('MZ','DZ')
 singlerows<-nrow(doubledata)/2
 
 #EHI plot
-myjitter<-rnorm(nrow(doubledata))/3
+#compute spearman correlation using function and assemble into string
+doubledata$thisx<-doubledata$ehp_handedness
+doubledata$thisy<-doubledata$ehp_handedness2
+thismz<-filter(doubledata,MZDZ==1)
+thisdz<-filter(doubledata,MZDZ==2)
+mylabelbit<-makespearman(thismz,thisdz)
+
+#add jitter to points before plotting
+myjitter<-rnorm(nrow(doubledata))/4.5 #need to add jitter to points for plotting
 doubledata$myx<-doubledata$ehp_handedness+myjitter
-myjitter<-rnorm(nrow(doubledata))/3
+myjitter<-rnorm(nrow(doubledata))/4.5
 doubledata$myy<-doubledata$ehp_handedness2+myjitter
 mytitle<-'Edinburgh Handedness Inventory'
-xpos<-3 #coordinates for correlation on plot
-ypos<-c(1,2)
 filetitle<-'ehiplot.png'
 vline=5.5
-makescatter(mytitle,xpos,ypos,filetitle,vline)
-
+xpos <- c(2.2,2.2)
+ypos <- c(4.5,3.5)
+g1<-makescatter(mytitle,xpos,ypos,filetitle,vline,mylabeldf,mylabelbit)
+```
 
 ###########################################################################################
-#QHP plot
-myjitter<-rnorm(nrow(doubledata))/3
+```{r QHPplot}
+
+#compute spearman correlation using function and assemble into string
+doubledata$thisx<-doubledata$qhp_handedness
+doubledata$thisy<-doubledata$qhp_handedness2
+thismz<-filter(doubledata,MZDZ==1)
+thisdz<-filter(doubledata,MZDZ==2)
+mylabelbit<-makespearman(thismz,thisdz)
+
+myjitter<-rnorm(nrow(doubledata))/4
 doubledata$myx<-doubledata$qhp_handedness+myjitter
-myjitter<-rnorm(nrow(doubledata))/3
+myjitter<-rnorm(nrow(doubledata))/4
 doubledata$myy<-doubledata$qhp_handedness2+myjitter
+xpos<-c(3,3) #coordinates for correlation on plot
+ypos<-c(8,6)
 mytitle<-'Quantification of Hand Preference'
-xpos<-0 #coordinates for correlation on plot
-ypos<-c(7,5)
 filetitle<-'qhpplot.png'
 vline=11
-makescatter(mytitle,xpos,ypos,filetitle,vline)
-
+g2 <-makescatter(mytitle,xpos,ypos,filetitle,vline,mylabeldf,mylabelbit)
+```
 ###########################################################################################
-#LI plot
+```{r LIplot}
 w<-which(doubledata$doppout==1)
 doubledata$lat_index[w]<-NA #this removes outlier value 
 doubledata$lat_index2[w]<-NA
+
+#compute spearman correlation using function and assemble into string
+doubledata$thisx<-doubledata$lat_index
+doubledata$thisy<-doubledata$lat_index2
+thismz<-filter(doubledata,MZDZ==1)
+thisdz<-filter(doubledata,MZDZ==2)
+mylabelbit<-makespearman(thismz,thisdz)
 doubledata$myx<-doubledata$lat_index #no need for jitter with LI
 doubledata$myy<-doubledata$lat_index2
 mytitle<-'Laterality Index (fTCD)'
-xpos<-4 #coordinates for correlation on plot
+xpos<-c(4,4) #coordinates for correlation on plot
 ypos<-c(10,9)
 filetitle<-'LIplot.png'
 vline=0
-makescatter(mytitle,xpos,ypos,filetitle,vline)
+g3<-makescatter(mytitle,xpos,ypos,filetitle,vline,mylabeldf,mylabelbit)
 
 
 ###########################################################################################
@@ -445,59 +491,22 @@ makescatter(mytitle,xpos,ypos,filetitle,vline)
 
 ```{r combined plots}
 
-doubledata$Zygosity<-as.factor(doubledata$MZDZ) #Initial caps for version that is factor with 2 values
-levels(doubledata$Zygosity)<-c('MZ','DZ')
-singlerows<-nrow(doubledata)/2
-
-#EHI plot
-myjitter<-rnorm(nrow(doubledata))/3
-doubledata$myx<-doubledata$ehp_handedness+myjitter
-myjitter<-rnorm(nrow(doubledata))/3
-doubledata$myy<-doubledata$ehp_handedness2+myjitter
-mytitle<-
-xpos<-3 #coordinates for correlation on plot
-ypos<-c(1,2)
-vline=5.5
-
-g1 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
-                 shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
-            title = 'Edinburgh Handedness Inventory')+
-  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
-  geom_vline(xintercept=vline,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-myjitter<-rnorm(nrow(doubledata))/3
-doubledata$myx<-doubledata$qhp_handedness+myjitter
-myjitter<-rnorm(nrow(doubledata))/3
-doubledata$myy<-doubledata$qhp_handedness2+myjitter
-xpos<-0 #coordinates for correlation on plot
-ypos<-c(7,5)
-vline=11
-
-g2 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
-                 shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
-            title = 'Quantification of Hand Preference')+
-  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
-  geom_vline(xintercept=vline,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-w<-which(doubledata$doppout==1)
-doubledata$lat_index[w]<-NA #this removes outlier value 
-doubledata$lat_index2[w]<-NA
-doubledata$myx<-doubledata$lat_index #no need for jitter with LI
-doubledata$myy<-doubledata$lat_index2
-xpos<-4 #coordinates for correlation on plot
-ypos<-c(10,9)
-vline=0
-
-g3 <- ggscatter(doubledata[1:singlerows,], x = 'myx', y = 'myy',  xlab='Twin 1',ylab='Twin 2',
-                 shape = "Zygosity", color = "Zygosity", palette = get_palette("aaas", 2),           
-            title = 'Laterality Index (fTCD)')+
-  stat_cor(aes(color = Zygosity), label.x = xpos,label.y=ypos,method='spearman',show.legend=FALSE) +
-  geom_vline(xintercept=vline,linetype="dashed")+geom_hline(yintercept = vline,linetype="dashed")
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-
 ggarrange(g1,g2,g3,ncol=1,nrow=3,common.legend = TRUE,heights=c(1,1,1))
 ggsave("combined_plot.png",width=4,height=12)
+
+```
+
+```{r LIconcordance}
+#Logic of analysis: L-lateralised twin with bilat or R-lat MZ cotwin
+#more likely to lack right shift factor
+#Predict lower language
+#So focus here is on MZ L-lateralised only, subcategorised by cotwin lat.
+
+concordMZ <- filter(doubledata,MZDZ==1,li_cat==1)
+concordMZ$cotwinsame<-1
+w<-which(concordMZ$li_cat2>1)
+concordMZ$cotwinsame[w]<-0
+t.test(concordMZ$n_language_low~concordMZ$cotwinsame) #no hint of any difference
 
 ```
 
