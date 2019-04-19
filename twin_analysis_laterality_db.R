@@ -8,9 +8,11 @@ require(tidyverse)
 
 mydir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/"
 
-file<-"TwinsData_DATA_2017-12-13_1033.csv"
-data<-read.csv(paste0(mydir,"Data/",file))
+file<-"TwinsData_DATA_2019-04-12_1525.csv"
 
+data<-read_csv(paste0(mydir,"Data/",file))
+
+data$myli_mean<-as.numeric(data$myli_mean)
 #-------------------------------------------------------
 # Create a variable that is 1 if L language and strong R on QHP and EHP and 0 otherwise
 #-------------------------------------------------------
@@ -23,21 +25,26 @@ w<-which(data$lateralised_category==-1)
 data$lat3[w]<-0
 w<-which(colnames(data)=='include')
 colnames(data)[w]<-'myinclude' #to avoid problems with having 'include' as column name
+
 #----------------------------------------------------------
 # Produce data frame of selected columns 
 #----------------------------------------------------------
 data.short<-filter(data,zygosity<9)
-data.short<-dplyr::select(data,record_id,fam_id,age_at_test,female,zygosity,twin,n_trials,laterality_index,qhp_freq_r,ehp_right,ehp_either,lang_probs,myinclude,lat3)
+data.short<-dplyr::select(data,record_id,fam_id,age_at_test,female,zygosity,twin,n_trials,
+                          myli_mean,qhp_freq_r,ehp_right,ehp_either,lang_probs,
+                          myinclude,lat3,lateralised_category,consistent)
 
 #-------------------------------------------------------
 # Create double entry file with twin 1 and 2 aligned
+#NB this code needs redoing to cope with possibility of additional columns
+# This works but depends crucially on the column numbers specified in the colnames column
 #-------------------------------------------------------
 nrec<-nrow(data.short)
 ncol<-ncol(data.short)
 nuorder2<-c(seq(from=2,to=nrec,by=2),seq(from=1,to=nrec,by=2))
 nuorder1<-c(seq(from=1,to=nrec,by=2),seq(from=2,to=nrec,by=2))
 doubledata<-cbind(data.short[nuorder1,],data.short[nuorder2,])
-colnames(doubledata)[15:28]<-paste0(colnames(doubledata)[15:28],2)
+colnames(doubledata)[17:32]<-paste0(colnames(doubledata)[17:32],2)
 #check all aligned
 check<-sum(doubledata$fam_id-doubledata$fam_id2)
 if(check>0) {print('Twins not aligned!!!')}
@@ -53,16 +60,17 @@ doubledata<-filter(doubledata,myinclude>0,myinclude2>0)
 Nexcluded[1]<-nrec-nrow(doubledata) 
 doubledata<-filter(doubledata,n_trials> 11,n_trials2>11)
 Nexcluded[2]<-nrec-nrow(doubledata)-Nexcluded[1]
-doubledata<-filter(doubledata,abs(laterality_index)<10,abs(laterality_index2)<10)
+doubledata<-filter(doubledata,abs(myli_mean)<10,abs(myli_mean2)<10)
 Nexcluded[3]<-nrec-nrow(doubledata)-Nexcluded[1]-Nexcluded[2]
 
 #unit of analysis is twin pair excluded, so need to divide by 2 as one row per twin
 Nexcluded<-Nexcluded/2
 
 #remove unwanted columns
-doubledata<-dplyr::select(doubledata,fam_id,age_at_test,female,zygosity,twin,n_trials,laterality_index,qhp_freq_r,
-                          ehp_right,ehp_either,lang_probs,lat3,n_trials2,laterality_index2,qhp_freq_r2,ehp_right2,ehp_either2,
-                          lang_probs2,lat32)
+doubledata<-dplyr::select(doubledata,fam_id,age_at_test,female,zygosity,twin,n_trials,myli_mean,qhp_freq_r,
+                          ehp_right,ehp_either,lang_probs,lat3,lateralised_category,consistent,
+                          n_trials2,myli_mean2,qhp_freq_r2,ehp_right2,ehp_either2,
+                          lang_probs2,lat32,lateralised_category2,consistent2)
 
 #scatterplot and correlation by zygosity
 # for (i in 1:3){
@@ -78,19 +86,22 @@ png(filename = "zygolat.png",
     width = 750, height = 400, units = "px", res=80,
     bg = "white")
 par(mfrow=c(1,2))
+#recode all DZ as 2, MZ as one
+
 doubledata$MZDZ<-2
 w<-which(doubledata$zygosity==1)
 doubledata$MZDZ[w]<-1
+
 for (i in 1:2){
   mymain='MZ: '
   if (i==2){mymain='DZ: '}
   tempdat <-filter(doubledata,MZDZ==i)
   #correlation from double entry gives ICC
-  rlat<-cor(tempdat$laterality_index,tempdat$laterality_index2)
+  rlat<-cor(tempdat$myli_mean,tempdat$myli_mean2)
   mysub<-paste0('r = ',toString(round(rlat,3)))
   tempdat1<-filter(tempdat,twin==1)
   mymain=paste0(mymain,'N = ',nrow(tempdat1),' pairs')
-  plot(tempdat1$laterality_index,tempdat1$laterality_index2,xlim=c(-6,9),ylim=c(-6,9),
+  plot(tempdat1$myli_mean,tempdat1$myli_mean2,xlim=c(-6,9),ylim=c(-6,9),
        xlab='LI twin 1',ylab='LI twin 2',main=mymain,cex.lab=1.5,cex.main=1.6)
   text(-4,8,mysub,col='red',font=2,cex=1.4)
   abline(h=0,col=4,lty=2)
@@ -98,7 +109,69 @@ for (i in 1:2){
 }
 dev.off()
 
+#scatterplot and correlation by zygosity as MZ/DZ
+png(filename = "zygoconsistent.png",
+    width = 750, height = 400, units = "px", res=80,
+    bg = "white")
+par(mfrow=c(1,2))
+#recode all DZ as 2, MZ as one
+#repeat this time using consistency measure instead of LI
+
+doubledata$MZDZ<-2
+w<-which(doubledata$zygosity==1)
+doubledata$MZDZ[w]<-1
+
+for (i in 1:2){
+  mymain='MZ: '
+  if (i==2){mymain='DZ: '}
+  tempdat <-filter(doubledata,MZDZ==i)
+  #correlation from double entry gives ICC
+  rlat<-cor(tempdat$consistent,tempdat$consistent2)
+  mysub<-paste0('r = ',toString(round(rlat,3)))
+  tempdat1<-filter(tempdat,twin==1)
+  mymain=paste0(mymain,'N = ',nrow(tempdat1),' pairs')
+  plot(tempdat1$consistent,tempdat1$consistent2,xlim=c(0,1),ylim=c(0,1),
+       xlab='Consistent twin 1',ylab='Consistent twin 2',main=mymain,cex.lab=1.5,cex.main=1.6)
+  text(-0,.5,mysub,col='red',font=2,cex=1.4)
+  abline(h=0,col=4,lty=2)
+  abline(v=0,col=4,lty=2)
+}
+dev.off()
 #to look at correlation for extreme vs inconsistent - need to do for each zygo
 #so far not promising!
 cor(tempdat$lat3,tempdat$lat32)
 
+#scatterplot and correlation for handedness by LI
+png(filename = "LIbyhand.png",
+    width = 750, height = 400, units = "px", res=80,
+    bg = "white")
+par(mfrow=c(1,2))
+
+for (i in 1:2){
+  mymain='boys: '
+  if (i==2){mymain='girls: '}
+  tempdat <-filter(doubledata,female==i-1)
+  #correlation from double entry gives ICC
+  rlat<-cor(tempdat$laterality_index,tempdat$ehp_right)
+  mysub<-paste0('r = ',toString(round(rlat,3)))
+  mymain=paste0(mymain,'N = ',nrow(tempdat))
+  plot(tempdat$laterality_index,tempdat$ehp_right,xlim=c(-6,9),ylim=c(0,9),
+       xlab='LI',ylab='EHP_R',main=mymain,cex.lab=1.5,cex.main=1.6,
+       col=(tempdat$lateralised_category+2))
+  text(-4,4,mysub,col='red',font=2,cex=1.4)
+  abline(h=4.5,col=4,lty=2)
+  abline(v=0,col=4,lty=2)
+}
+dev.off()
+
+#check concordance for lang_probs
+tempdat1<-filter(doubledata,twin==1)
+myconc<-table(tempdat1$lang_probs,tempdat1$lang_probs2,tempdat1$zygosity)
+
+mysummary<-data.frame(matrix(,nrow=6,ncol=2))
+colnames(mysummary)<-c('Pair_type','N')
+mysummary$Pair_type<-c('MZ concordant affected','MZ discordant','MZ concordant unaffected',
+                       'DZ concordant affected','DZ discordant','DZ concordant unaffected')
+mysummary$N <-c(myconc[1,1,1],myconc[1,2,1]+myconc[2,1,1],myconc[2,2,1],
+                myconc[1,1,2]+myconc[1,1,3],myconc[1,2,2]+myconc[2,1,2]+myconc[1,2,3]+myconc[2,1,3],
+                myconc[2,2,2]+myconc[2,2,3])
