@@ -31,7 +31,7 @@ source('http://ibg.colorado.edu/cdrom2016/verhulst/Power/powerFun.R')
 #see http://www.people.vcu.edu/~bverhulst/power/powerScript.R
 #mxOption(NULL, 'Default optimizer', 'NPSOL') #?? this gets 'could not find function mxOption'
 
-tabnum<-1 #keeps track of table numbers. Table 1 is for literature review
+tabnum<-0 #keeps track of table numbers. 
 ```
 ```{r readdata, echo=FALSE}
 #---------------------------------------------------------------
@@ -120,11 +120,13 @@ mydata$taskssum[w]<-NA
 # Produce data frame of selected columns 
 #----------------------------------------------------------
 data.short<-filter(mydata,zygosity<9)
-data.short<-dplyr::select(mydata,record_id,fam_id,age_at_test,female,zygosity,n_language_low,myinclude,twin,n_trials, lat_index,qhp_handedness,ehp_handedness,lang_probs,li_cat,lat3,ehp_handedness,qhp_handedness,taskssum)
+data.short<-dplyr::select(mydata,record_id,fam_id,age_at_test,female,zygosity,n_language_low,myinclude,twin,n_trials, lat_index,qhp_handedness,ehp_handedness,lang_probs,li_cat,lat3,ehp_handedness,qhp_handedness,taskssum,ehp_write)
 #identify cases to exclude because of less than 12 trials on doppler
 w<-c(which(data.short$n_trials<12),which(is.na(data.short$n_trials)))
 data.short$doppexcl <- 0
 data.short$doppexcl[w] <-1
+w<-which(data.short$ehp_write==999)
+data.short$ehp_write[w]<-NA
 
 ```
 
@@ -202,18 +204,21 @@ Npairwithdopp<-nrow(doubledata2)/2
 ## Introduction
 Lateralisation of language and motor function in humans are traits with two notable features: First, there is a pronunced population bias to one side - to the left for lateralisation of language in the brain, and to the right for handedness; Second there is individual variation in the extent of bias; a minority of individuals show a reversal of the typical pattern, and others show little or no asymmetry.
 
-Other primates show some indications of lateralised functions, but humans are distinctive in their strong population bias to right-handedness. It is often assumed that evolution of manual laterality is related to development of a complex and lateralised language faculty in humans, but the biological origins of the population bias are not well understood for either trait. There is an association between handedness and language lateralisation, but it is complex: whereas around 95% of right-handers have left-hemisphere language, this is true for around 67% of left-handers (see Bishop, 1990, for review).
+Other primates show some indications of lateralised functions, but humans are distinctive in their strong population bias to right-handedness. It is often assumed that evolution of manual laterality is related to development of a complex and lateralised language faculty in humans, but the biological origins of the population bias are not well understood for either trait. There is an association between handedness and language lateralisation, but it is complex: whereas around 95% of right-handers have left-hemisphere language, this is true for around 67% of left-handers (see Bishop, 1990a, for review).
 
 Twins provide a useful natural experiment for estimating the contribution of genetic variation to individual differences in a trait. The twin method uses comparisons of similarity of identical (monozygotic or MZ) twins versus non-identical (dizygotic or DZ twins) to derive estimates of the relative contributions of genetic variants, environment shared by the twins, and other twin-specific influences (including chance) on individual variation in a trait. This is best understood intuitively by imagining a variety of hypothetical situations. In the first, the trait is solely determined by random chance: in that case, two members of a twin pair (A and B) would be no more similar than two unrelated people, and in a sample of twins, the correlation between twin A and twin B would be zero, regardless of zygosity. In a second fictitious scenario, the trait is solely determined by an environmental factor common to both twins, such as home environment. In that case, there would be perfect correlation between the traits for twin A and twin B, regardless of zygosity. In the third scenario, the trait is determined solely by genes: because MZ twins are genetically identical, the correlation between two members of a twin pair will be 1, but for DZ twins, who on average have 50% of their segregating genes in common, the correlation will be .5. 
 
 In practice, our goal is not to attribute variation in the observed trait (phenotype) to one cause or the other, but rather to assume their effects are additive and estimate their relative contribution. The usual approach to twin analysis is to specify that the total variance in a trait, v is equal to a^2^ + c^2^ + e^2^, where a is additive genetic variance, c is shared (common) environment and e is random, nonshared environment. Similarity between pairs of MZ twins is the sum of genetic and shared environmental influences, a^2^ + c^2^, and similarity between pairs of DZ twins is .5 a^2^ + c^2^, so we can estimate heritability (a^2^) as twice the difference in correlation between MZ and DZ twins, and then obtain the values for c^2^ and e^2^ by simple algebra (Sham, 1998). 
 
-Twin studies of manual laterality have shown that, contrary to conventional wisdom, individual differences in handedness are largely determined by chance, with genetic variation playing a relatively minor role. A meta-analysis of 35 twin studies estimated heritability of around .23, with shared environment effect of zero (Medland, 2006). Studies of language laterality are far less numerous, because of the difficulty and expense of studying large numbers of twins. Table 1 summarises results from studies that have looked at structural and functional asymmetries in twins, and one can see that the estimates of heritability are again low, and in keeping with those previously reported for handedness.
+Twin studies of manual laterality have shown that, contrary to conventional wisdom, individual differences in handedness are largely determined by chance, with genetic variation playing a relatively minor role. A meta-analysis of 35 twin studies estimated heritability of around .23, with shared environment effect of zero (Medland, 2006). Studies of language laterality are far less numerous, because of the difficulty and expense of studying large numbers of twins.
 
-To do: Table 1 - summary of studies of structural/functional asymmetry
-`r tabnum<-1`
+A study by Geschwind et al (2002) was entitled 'Heritability of lobar brain volumes in twins supports genetic models of cerebral laterality and handedness', but close inspection of the results reveals that the authors did not provide any evidence of heritability of structural brain asymmetry. Participants were 72 MZ and 67 DZ male twin pairs aged around 72 years. Conventional twin analysis was conducted and showed high heritability for volumes of the four lobes of the brain on the left and right. 86% of the MZ pairs and 88% of the DZ pairs were concordant for handedness. Further analyses were conducted to compare lobar volumes and asymmetries in those with consistent vs inconsistent handedness, but key data on MZ and DZ concordance for brain asymmetry were not presented. The general finding of high heritability for regional brain volumes is consistent with subsequent twin studies, but to throw light on genetics of cerebral asymmetry, we need data on MZ and DZ twin concordances for a laterality index that indicates the relative size of the two hemispheres. Such data were provided by Eyler et al (2014), who studied 130 MZ and 92 DZ adult twin pairs and concluded: “Our findings suggest that genetic factors do not play a significant role in determining individual variation in the degree of regional cortical size asymmetries measured with MRI, although they may do so for volume of some subcortical structures.” (p. 1110). 
 
-As far as we are aware, to date there has not been a twin study that uses a direct, functional measure of language lateralisation. We report genetic analysis from a study of `r Npairwithdopp` twin pairs, showing that, consistent with previous studies of handedness and brain asymmetry, chance (or environmental factors not shared between twins) plays the major role in determining individual differences in language lateralisation.
+Jahanshad et al. (2010) studied structural brain connectivity in 60 MZ and 45 same-sex DZ twin pairs using diffusion tensor imaging. They stated: “We expected genetic factors to play a substantial role in the lateralization of the fiber anisotropy in language association regions of the temporal lobe, including the arcuate fasciculus”, but in practice heritability estimates were modest at best: they started by looking at twin concordance in a voxel-wise analysis before moving to look at laterality in 12 regions of interest. The concluded that genetic factors accounted for 33% of the variance in asymmetry for the inferior fronto-occipital fasciculus, 37% for the anterior thalamic radiation, and 20% for the forceps major and uncinate fasciculus. Exclusion of left-handers from the sample may have led to inflated estimates of heritability, because most left-handed twins have a right-handed cotwin, and this discordance could be reflected in discrepant structural asymmetry for members of a twin pair. Neither this study nor that by Eyler et al (2014) found any effect of shared environment on laterality: most variance was explained by the E (non-shared environment) term, reflecting a lack of correlation between both MZ and DZ twins.
+
+Ocklenburg et al (2016) used a behavioural measure of language lateralisation, relative ear advantage on dichotic listening, to estimate heritability from parent-offspring relationships in 103 families. Correlations between offspring and mid-parent were close to zero for a laterality index based on free listening, but significant heritability estimates of .28 - .36 were obtained when participants were instructed to direct attention to one ear. Somers et al (2015) assessed cerebral lateralisation using functional transcranial Doppler ultrasound in 309 people from 37 families from a Dutch community with a low genetic heterogeneity. The main goal of the study was to identify genetic variants associated with atypical laterality, and so families were selected if they had a least two left-handed members in at least two generations. The heritability of handedness was .24, and the heritability of atypical language lateralisation (coded as a binary variable) was .31. The authors noted that heritability may have been overestimated because of oversampling of families with several left-handed members, but nevertheless, the heritability of handedness was similar to that obtained from other samples without such ascertainment bias.  In both the Ocklenburg et al study and the Somers et al study, heritability was estimated from family relationships, ignoring any effect of shared environmental influences. This seems a reasonable assumption, given that no twin study of laterality has found an effect of shared environment. 
+
+As far as we are aware, to date there has not been a twin study that uses a direct, functional measure of cerebral lateralisation for language. We report genetic analysis from a study of `r Npairwithdopp` twin pairs, showing that, consistent with previous studies of handedness and brain asymmetry, chance (or environmental factors not shared between twins) plays the major role in determining individual differences in language lateralisation.
 
 Our sample consists of twin children recruited for a study of the genetic bases of developmental language disorder (DLD), for whom language lateralisation was assessed using functional transcranial Doppler ultrasound (fTCD). Data from these children have previously been reported in the context of an analysis focusing on relationships between cerebral lateralisation and language functioning (Wilson & Bishop, 2018). That analysis found no difference in language laterality between children with language disorders and those with typical language development, although the internal consistency of the laterality index obtained with this measure was good (split-half reliability for odd and even trials = .84). Furthermore, comparison with a previous study using the same methods confirmed that language lateralisation in twins did not differ from that observed in single-born children. This sample provides a useful opportunity to fill a gap in the literature with an analysis comparing MZ and DZ twins in order to estimate the relative contribution of genetic and non-genetic variation to individual differences in language laterality.  
 
@@ -814,37 +819,62 @@ mycaption<-paste0('Table ',tabnum,': Extreme probands, t-tests comparing MZ/DZ c
 
 flextable(dftable)
 ```
+
+```{r LIconcordance, include=FALSE, echo=FALSE}
+#Logic of analysis: R-handedtwin with R-handedcotwin should be different genetically
+#from R handed twin with L handed cotwin
+#latter more likely to lack right shift factor
+#Predict lower language and differences in lang lat
+handdata<-filter(doubledata,twin==1) #for concordance counts, need only twin 1
+table(handdata$ehp_write,handdata$ehp_write2,handdata$MZDZ)
+#make table to show concordance for handedness
+conctable <- data.frame(matrix(nrow = 2, ncol = 4))
+colnames(conctable)<-c('Zygosity','LL','LR','RR')
+conctable[,1]<-c('MZ','DZ')
+for (zygo in 1:2){
+  conctable[zygo,2]<-nrow(filter(handdata,MZDZ==zygo,ehp_write==0,ehp_write2==0))
+  conctable[zygo,3]<-nrow(filter(handdata,MZDZ==zygo,ehp_write==0,ehp_write2==1))+
+      nrow(filter(handdata,MZDZ==zygo,ehp_write==1,ehp_write2==0))
+  conctable[zygo,4]<-nrow(filter(handdata,MZDZ==zygo,ehp_write==1,ehp_write2==1))
+}
+
+#Now need to compare RR handers with LL/LR handers by zygosity on lat_index
+#A bit tricky - I think double entry is appropriate here, so use doubledata
+
+doubledata$RRhand <- 1
+w<-c(which(doubledata$ehp_write==0),which(doubledata$ehp_write2==0))
+doubledata$RRhand[w]<-0
+
+
+  tprobandM<-t.test(lat_index~RRhand,data=doubledata[doubledata$MZDZ==1,])
+  tcotwinM<-t.test(lat_index2~RRhand,data=doubledata[doubledata$MZDZ==1,])
+  tprobandD<-t.test(lat_index~RRhand,data=doubledata[doubledata$MZDZ==2,])
+  tcotwinD<-t.test(lat_index2~RRhand,data=doubledata[doubledata$MZDZ==2,])
+
+
+```
+
 *Table `r tabnum`: Extreme probands, t-tests comparing MZ/DZ co-twins*
 
-Some genetic models of handedness have proposed two basic types of laterality genotype: one with a bias to left-sidedness for language and right-sidedness of handedness, with chance playing a major role in determining degree of handedness for either type. If this model holds, then if we identify individuals with atypical handedness or language laterality, they would have a strong likelihood of belonging to the unbiased group. MZ cotwins of these individuals should be similarly unbiased, whereas DZ cotwins should show less bias. This is the basic logic of the DeFries-Fulker (1988) method for analysing heritability of extreme scores. Although this can be tested in the OpenMx framework, the plausibility of such a model can be readily tested by selecting twins with an extreme score and then using a t-test to compare co-twin scores for MZ and DZ twins. Results of such an analysis are shown for all three phenotypes in Table 4. These data must be interpreted with extreme caution because of the small sample sizes, but they do not lend any support to the idea that there is a distinct genetic origin of atypical laterality, either for handedness or for language laterality.
+Some genetic models of handedness have proposed two basic types of laterality genotype: one with a bias to left-sidedness for language and right-sidedness of handedness, with chance playing a major role in determining degree of handedness for either type. Failure to find specific genetic variants associated with non-right-handedness in large-scale genome-wide association studies has led researchers to propose that this phenotype may be the consequence of a wide range of disparate genetic mutations. If this model holds, then if we identify individuals with atypical handedness or language laterality, they would have a strong likelihood of carrying a specific mutation that reduces lateralisation. Unless the mutation arose post-fertilisation, then it would be shared in all MZ twins, but in only 50% of DZ twins. Thus if we select individuals with atypical laterality, MZ cotwins of these individuals should be similarly atypical, whereas DZ cotwins should be more likely to have typical laterality. This is the basic logic of the DeFries-Fulker (1988) method for analysing heritability of extreme scores. Although this can be tested in the OpenMx framework, the plausibility of such a model can be readily tested by selecting twins with an extreme score and then using a t-test to compare co-twin scores for MZ and DZ twins. Results of such an analysis are shown for all three phenotypes in Table 4, where the contrasts between MZ and DZ cotwins are not statistically reliable. These data must be interpreted with extreme caution because of the small sample sizes, but they do not lend any support to the idea that there is a distinct genetic origin of atypical laterality, either for handedness or for language laterality.
 
 # Discussion
 
 The twin analysis of handedness data from this study gave results that were consistent with those from previous meta-analyses, with around 20% of variance accounted for by genetic factors. The language laterality index, however, showed twin-twin correlations close to zero for both MZ and DZ twins, and appeared therefore to be determined entirely by chance.
 
-This raises the question as to the validity of the laterality index obtained using functional transcranial Doppler ultrasound. If chance is the principal determinant of the LI, is this just because the measure is unreliable within individuals? We do not have test-retest data on this sample, but it seems unlikely this is the whole explanation, for three reasons. First, the split half reliability of the LI is around .85, which indicates reasonable consistency from trial to trial across the testing session. With adults, we have explicitly considered test-retest reliability of the LI obtained with fTCD, and found that, while it varies from task to task, it is generally much higher than the twin-cotwin correlations found here, with test-retest correlation of .84 for the task that is most similar to the animation description task (Woodhead et al., 2019). Second, the children studied here show a robust bias to the left hemisphere at the group level (Wilson & Bishop, 2018). Third, the current result is broadly consistent with the handful of studies that have looked at structural or functional brain lateralisation, reviewed in Table 1. Although these have revealed some heritable laterality indices, these typically emerge in the course of searching through large numbers of brain regions, raising the likelihood that type I error may be implicated. 
+This raises the question as to the validity of the laterality index obtained using functional transcranial Doppler ultrasound. If chance is the principal determinant of the LI, is this just because the measure is unreliable within individuals? We do not have test-retest data on this sample, but it seems unlikely this is the whole explanation, for three reasons. First, the split half reliability of the LI is around .85, which indicates reasonable consistency from trial to trial across the testing session. With adults, we have explicitly considered test-retest reliability of the LI obtained with fTCD, and found that, while it varies from task to task, it is generally much higher than the twin-cotwin correlations found here, with test-retest correlation of .84 for the task that is most similar to the animation description task (Woodhead et al., 2019). Second, the children studied here show a robust bias to the left hemisphere at the group level (Wilson & Bishop, 2018). Third, the current result is broadly consistent with the handful of studies that have looked at structural or functional brain lateralisation. Although these have revealed some heritable laterality indices, these are typically small in magnitude. It is also compatible with a recent study that failed to find associated mutations of large effect in a set of individuals with atypical language laterality (Carrion-Castillo et al., 2019).
 
-A further question is why language laterality shows zero heritability, whereas handedness shows small but significant heritability. This difference in findings may prove to be an uninteresting artefact of measurement error. The sample size was smaller for the language laterality measure than for handedness, giving reduced power to detect a true effect. The difference in heritability estimates between measures was not large. We cannot dismiss the possibility that the true level of heritability for language laterality is similar to that for handedness - slight but not totally absent. 
+A further question is why language laterality shows zero heritability, whereas handedness shows small but significant heritability. This difference in findings may prove to be an uninteresting artefact of measurement error. The sample size was smaller for the language laterality measure than for handedness, giving reduced power to detect a true effect. The difference in heritability estimates between measures was not large. We cannot dismiss the possibility that the true level of heritability for language laterality is similar to that for handedness - slight but not totally absent. This would be in line with findings from family studies of functional language lateralisation by Ocklenburg et al (2016) and Somers et al (2015).
 
 Our results, however, suggest another possibility, which is that language laterality may be the consequence of a general population bias to left-sided brain bias for language which does not show any individual variation. If a genetic biasing factor applies to the whole population, without there being any variation, then heritability will be zero. The postulated population bias would have to be probabilistic rather than deterministic, with some individuals showing atypical lateralisation just by chance. Such a model is consistent with the view of neurodevelopment proposed by Mitchell (2018). He noted that it is customary to interpret the 'e' term of an ACE model as reflecting some systematic environmental influence that is not shared by the two members of a twin pair, literally 'non-shared environment'. He argues that this disregards a possible role for stochastic influences on neurodevelopment, and notes that evidence for such 'developmental noise' comes from numerous instances where there is phenotypic variability despite genetic identity. This is seen not only in cases of MZ twins with the same genetic mutation but different outcomes, but also in the two sides of the body, which are seldom totally symmetric, despite having the same DNA.
 
-In the past, I concluded that handedness was not heritable, on the basis of small-scale twin studies that found no evidence of genetic influence. It has also been remarkably difficult to find any genetic variants linked with variations in handedness. It subsequently became clear, however, that there is a genetic effect, but it is small and only clearly detectable in very large samples.  It is possible that the same will prove to be the case for language lateralisation. One small study is not sufficient to prove zero heritability for this phenotype. Until larger samples are available, however, language lateralisation appears the best candidate to date of a phenotype that breaks Turkheimer's (2000) first law of behaviour genetics: 'All human behavioural traits are heritable'.
+In the past, I concluded that handedness was not heritable, on the basis of small-scale twin studies that found no evidence of genetic influence. It has also been remarkably difficult to find any genetic variants consistently linked with variations in handedness. It subsequently became clear, however, that there is a genetic effect, but it is small and only clearly detectable in very large samples.  It is possible that the same will prove to be the case for language lateralisation, especially given prior findings of significant heritability in structural measures of specific fibre tracts (Jahanshad et al, 2010) and subcortical brain regions (Eyler et al, 2014), plus the large family study of Somers et al (2105) that used a binary phenotype. The current small study is not sufficient to prove zero heritability for lateralised brain function. On the other hand, it is striking how difficult it has been to replicate previous studies of genetic associations with laterality, and the flexibility with which the phenotype can be defined does increase the likelihood that some findings may be type I errors (Bishop, 1990b). 
+
+Until larger samples are available, language lateralisation appears the best candidate to date of a phenotype that breaks Turkheimer's (2000) first law of behaviour genetics: 'All human behavioural traits are heritable'.
 
 
 
-```{r LIconcordance, include=FALSE, echo=FALSE}
-#Logic of analysis: L-lateralised twin with bilat or R-lat MZ cotwin
-#more likely to lack right shift factor
-#Predict lower language
-#So focus here is on MZ L-lateralised only, subcategorised by cotwin lat.
 
-concordMZ <- filter(doubledata,MZDZ==1,li_cat==1)
-concordMZ$cotwinsame<-1
-w<-which(concordMZ$li_cat2>1)
-concordMZ$cotwinsame[w]<-0
-t.test(concordMZ$n_language_low~concordMZ$cotwinsame) #no hint of any difference
-
-```
 
 ```{r otherbits, include=FALSE, echo=FALSE}
 ## Thoughts
@@ -996,9 +1026,15 @@ round(colMeans(mysimdat),3)
 
 Annett, M. (1985). Left, right, hand and brain: the Right Shift Theory. Hillsdale, NJ: Erlbaum.
 
-Bishop, D. V. M. (1990). Handedness and developmental disorder. Oxford: Blackwell Scientific and Philadelphia: J.B. Lippincott.
+Armour, J. A. L., Davison, A., & McManus, I. C. (2014). Genome-wide association study of handedness excludes simple genetic models. Heredity, 112(3), 221-225. doi:10.1038/hdy.2013.93
+
+Bishop, D. V. M. (1990a). Handedness and developmental disorder. Oxford: Blackwell Scientific and Philadelphia: J.B. Lippincott.
+
+Bishop, D. V. M. (1990b). How to increase your chances of obtaining a significant association between handedness and disorder. Journal of Clinical and Experimental Ñeuropsychology, 12, 786-790. 
 
 Bishop, D. V. M., Watt, H., & Papadatou-Pastou, M. (2009). An efficient and reliable method for measuring cerebral lateralization during speech with functional transcranial Doppler ultrasound. Neuropsychologia, 47, 587-590. 
+
+Carrion-Castillo, A., Haegen, L. V. d., Tzourio-Mazoyer, N., Kavaklioglu, T., Badillo, S., Chavent, M., . . . Francks, C. (2019). Genome sequencing for rightward hemispheric language dominance. Genes, Brain and Behavior, in press. doi:https://doi.org/10.1111/gbb.12572
 
 DeFries, J. C., & Fulker, D. W. (1988). Multiple regression analysis of twin data: aetiology of deviant scores versus individual differences. Acta Geneticae et Medicae Gemellologiae, 37, 205-216. 
 
@@ -1027,6 +1063,8 @@ Pritchard, V. E., Malone, S. A., Burgoyne, K., Heron-Delaney, M., Bishop, D. V. 
 R Core Team (2013). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria
 
 Revelle, W. (2018). psych: Procedures for Personality and Psychological Research. Northwestern University, Evanston, Illinois, USA.
+
+Somers, M., Ophoff, R. A., Aukes, M. F., Cantor, R. M., Boks, M. P., Dauwan, M., . . . Sommer, I. E. (2015). Linkage analysis in a Dutch population isolate shows no major gene for left-handedness or atypical language lateralization. Journal of Neuroscience, 35(23), 8730-8736. doi:10.1523/jneurosci.3287-14.2015
 
 Turkheimer E. (2000). Three laws of behavior genetics and what they mean. Current Directions in Psychological Science, 9, 160–164. 
 
