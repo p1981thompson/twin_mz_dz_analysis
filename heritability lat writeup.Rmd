@@ -870,7 +870,7 @@ Our results, however, suggest another possibility, which is that language latera
 
 In the past, I concluded that handedness was not heritable, on the basis of small-scale twin studies that found no evidence of genetic influence. It has also been remarkably difficult to find any genetic variants consistently linked with variations in handedness. It subsequently became clear, however, that there is a genetic effect, but it is small and only clearly detectable in very large samples.  It is possible that the same will prove to be the case for language lateralisation, especially given prior findings of significant heritability in structural measures of specific fibre tracts (Jahanshad et al, 2010) and subcortical brain regions (Eyler et al, 2014), plus the large family study of Somers et al (2105) that used a binary phenotype. The current small study is not sufficient to prove zero heritability for lateralised brain function. On the other hand, it is striking how difficult it has been to replicate previous studies of genetic associations with laterality, and the flexibility with which the phenotype can be defined does increase the likelihood that some findings may be type I errors (Bishop, 1990b). 
 
-Until larger samples are available, language lateralisation appears the best candidate to date of a phenotype that breaks Turkheimer's (2000) first law of behaviour genetics: 'All human behavioural traits are heritable'.
+A provocative conclusion from the current study woudl be that, in the absence of larger twin studies using functional measures of laterality, language lateralisation appears the best candidate to date of a phenotype that breaks Turkheimer's (2000) first law of behaviour genetics: 'All human behavioural traits are heritable'.
 
 
 
@@ -1031,6 +1031,8 @@ Armour, J. A. L., Davison, A., & McManus, I. C. (2014). Genome-wide association 
 Bishop, D. V. M. (1990a). Handedness and developmental disorder. Oxford: Blackwell Scientific and Philadelphia: J.B. Lippincott.
 
 Bishop, D. V. M. (1990b). How to increase your chances of obtaining a significant association between handedness and disorder. Journal of Clinical and Experimental Ñeuropsychology, 12, 786-790. 
+
+Bishop, D. V. M., Ross, V., Daniels, M. S., & Bright, P. (1996). The measurement of hand preference: a validation study comparing three groups of right-handers. British Journal of Psychology, 87, 269-285. 
 
 Bishop, D. V. M., Watt, H., & Papadatou-Pastou, M. (2009). An efficient and reliable method for measuring cerebral lateralization during speech with functional transcranial Doppler ultrasound. Neuropsychologia, 47, 587-590. 
 
