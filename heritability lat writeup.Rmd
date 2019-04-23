@@ -26,6 +26,8 @@ require(psych) #for phi coeff
 require(ggpubr)
 library(kableExtra) #hmm, this does not work with Word output
 require(flextable)
+library(officer)
+library(umx)
 
 source('http://ibg.colorado.edu/cdrom2016/verhulst/Power/powerFun.R')
 #see http://www.people.vcu.edu/~bverhulst/power/powerScript.R
@@ -242,7 +244,7 @@ tab2f[,1]<-tab2f[,2]+tab2f[,3]
 tab2f[,1:2]<-tab2f[,1:2]/2
 tab2f<-tab2f[,1:2]
 tab2f<-data.frame(tab2f)
-colnames(tab2f)<-c('All','With fTCD')
+colnames(tab2f)<-c('All','With_fTCD')
 nr<-nrow(tab2f)
 tab2f[(nr+1),]<-colSums(tab2f)
 
@@ -252,7 +254,6 @@ mycaption<-paste0('Table ',tabnum,': N twin pairs by zygosity and sex')
 #tab2f %>% kable(booktabs = T, caption = mycaption) %>% 
 #  kable_styling()
 tab2f<-cbind(forflex,tab2f)
-colnames(tab2f)[1]<-'Zygosity/gender'
 tab2f[,2]<-as.integer(tab2f[,2])
 tab2f[,3]<-as.integer(tab2f[,3])
 flextable(tab2f,col_keys=names(tab2f))
@@ -618,7 +619,7 @@ hist(doubledata$lat_index,breaks=20)
 nv <- 1 #N variables
 ntv <- nv*2 #N columns (twins)
 aatable <-data.frame(matrix(NA,nrow=3,ncol=6))
-colnames(aatable)<-c('Measure','N MZ','N DZ','a','a.SE','a^2')
+colnames(aatable)<-c('Measure','N_MZ','N_DZ','a','a_SE','a_sqr')
 mxcols <-matrix(c('ehp_handedness','ehp_handedness2','qhp_handedness','qhp_handedness2','lat_index','lat_index2'),nrow=3,byrow=TRUE)
 for (mytask in 1:3){
 selVars <- mxcols[mytask,1:2]
@@ -677,12 +678,17 @@ The OpenMx package was used to run an AE model with the data from the two handed
 #stargazer(aatable,type='text',title='Table 3: Heritability estimates from AE model for different measures: ignoring nonnormality',summary=FALSE)
 tabnum<-tabnum+1
 aatable[,1]<-c('Edinburgh Handedness Inventory','Quantification of Hand Preference','Language laterality index')
-colnames(aatable)[6]<-'a^2'
+#colnames(aatable)[6]<-'a^2'
 mycaption<-paste0('Table ',tabnum,': Heritability estimates from AE model for different measures: ignoring nonnormality')
 #aatable %>% kable(booktabs = T, caption = mycaption) %>% 
 #  kable_styling()
 
-flextable(aatable,col_keys=names(aatable))
+ft <-flextable(data = aatable) %>% 
+  theme_booktabs() %>% 
+  set_header_labels( Measure ="Measure", N_MZ="N MZ", N_DZ="N DZ", a="a", a_SE="a (SE)", a_sqr="a^2") 
+
+ft 
+
 
 #NB all tasks have been scaled; skew in the handedness measures has not been accounted for
 ```
@@ -817,7 +823,17 @@ mycaption<-paste0('Table ',tabnum,': Extreme probands, t-tests comparing MZ/DZ c
 #dftable %>% kable(booktabs = T, caption = mycaption) %>% 
 #  kable_styling()
 
+colnames(dftable)<-c('Measure','N_MZ','N_DZ','MZ_proband','DZ_proband',
+                     'MZ_twin','DZ_twin','t','df','p')
+
 flextable(dftable)
+
+ft2<-flextable(data = dftable) %>% 
+  theme_booktabs() %>% 
+  set_header_labels( Measure ="Measure", N_MZ="N MZ", N_DZ="N DZ", MZ_proband="MZ proband mean (SD)", DZ_proband="DZ proband mean (SD)", MZ_twin= "MZ co-twin mean (SD)", DZ_twin="DZ co-twin mean (SD)", t="t",df= "df", p="p") 
+
+ft2 
+
 ```
 
 ```{r LIconcordance, include=FALSE, echo=FALSE}
