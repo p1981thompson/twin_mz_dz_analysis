@@ -13,7 +13,7 @@ output:
 
 ```{r setup,  include=FALSE, echo=FALSE}
 #---------------------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE,message = FALSE,warning=FALSE)
+knitr::opts_chunk$set(message = FALSE,warning=FALSE)
 batesinfo <- 1 #bits for tim bates
 
 require(yarrr)
@@ -28,6 +28,9 @@ library(kableExtra) #hmm, this does not work with Word output
 require(flextable)
 library(officer)
 library(umx)
+
+#include = FALSE prevents code and results from appearing in the finished file. R Markdown still runs the code in the chunk, and the results can be used by other chunks. 
+#echo = FALSE prevents code, but not the results from appearing in the finished file.
 
 source('http://ibg.colorado.edu/cdrom2016/verhulst/Power/powerFun.R')
 #see http://www.people.vcu.edu/~bverhulst/power/powerScript.R
@@ -210,6 +213,18 @@ nlowN<-length(unique(doubledata$fam_id[w]))
 ```
 
 ## Abstract
+### Background 
+It is widely assumed that individual differences in language lateralisation have a strong genetic basis, yet prior studies show low heritability (around .25) for the related trait of handedness, and two twin studies of structural brain asymmetry obtained similarly low estimates. This report describes heritability estimates from a twin study of language laterality and handedness phenotypes. 
+
+### Methods 
+Handedness data was available from the Edinburgh Handedness Inventory (EHI) and Quantification of Hand Preference (QHP) for `r Npairwithhand` twin pairs (49% monozygotic) aged from 6 to 11 years. A language laterality index was obtained for `r Npairwithdopp` twin pairs, who completed a protocol where relative blood flow through left and right middle cerebral arteries was measured using transcranial Doppler ultrasound while the child described animation sequences. Heritability was assessed using conventional structural equation modeling, assuming no effect of shared environment (AE model), with a nonparametric model being used for handedness data. 
+
+### Results 
+For the two handedness measures, heritability estimates were consistent with prior research: .23 and .22 respectively for the EHI and QHP on nonparametric analysis. For the language laterality index, however, the twin-cotwin correlations were very close to zero for both MZ and DZ twins, and the heritability estimate was zero. 
+
+### Conclusions 
+This single study cannot rule out a genetic effect on language lateralisation: although the split-half reliability of the laterality index was high (.85) we do not have information on test-retest reliability in children, and it is possible that noisy data may affect twin-cotwin correlations. The sample is also small for genetic analysis, though power of the AE model is substantially higher than for a conventional model that includes a term for shared environment. These results do nevertheless raise the provocative possibility that individual differences in cerebral lateralisation may be caused solely by stochastic variation in neurodevelopment.
+
 
 ## Introduction
 Lateralisation of language and motor function in humans are traits with two notable features: First, there is a pronunced population bias to one side - to the left for lateralisation of language in the brain, and to the right for handedness; second there is individual variation in the extent of bias; a minority of individuals show a reversal of the typical pattern, and others show little or no asymmetry.
@@ -226,7 +241,7 @@ A study by Geschwind et al (2002) was entitled 'Heritability of lobar brain volu
 
 Jahanshad et al. (2010) studied structural brain connectivity in 60 MZ and 45 same-sex DZ twin pairs using diffusion tensor imaging. They stated: “We expected genetic factors to play a substantial role in the lateralization of the fiber anisotropy in language association regions of the temporal lobe, including the arcuate fasciculus”, but in practice heritability estimates were modest at best: they started by looking at twin concordance in a voxel-wise analysis before moving to look at laterality in 12 regions of interest. The concluded that genetic factors accounted for 33% of the variance in asymmetry for the inferior fronto-occipital fasciculus (part of the ventral language pathway), 37% for the anterior thalamic radiation, and 20% for the forceps major and uncinate fasciculus. Exclusion of left-handers from the sample may have led to inflated estimates of heritability, because most left-handed twins have a right-handed cotwin, and this discordance could be reflected in discrepant structural asymmetry for members of a twin pair. Neither this study nor that by Eyler et al (2014) found any effect of shared environment on laterality: most variance was explained by the E (non-shared environment) term, reflecting a lack of correlation between both MZ and DZ twins.
 
-```{r katewbit}
+```{r katewbit, include=FALSE}
 ###Notes from Kate W re tracts
 ###The arcuate is likely part of the superior longitudinal fasciculus - the portion of it that arcs around the back of the Sylvian fissure
 ###In addition to the SLF - The language relevant tracts are:
@@ -253,9 +268,9 @@ Our sample consists of twin children recruited for a study of the genetic bases 
 ### Participants
 For a detailed account of selection of participants, see Wilson and Bishop (2018). In brief, we recruited `r Npairwithhand ` pairs of twins aged 6 years 0 months to 11 years 11 months, using a sampling approach with the aim of including around 75% twin pairs where one or both had parental report of language or literacy difficulties. Our previous analysis found no association between language laterality and language disorder, and so all children were treated together here. Using a broad definition of language problems, including any mention of history of speech-and-language therapy or communication difficulties, out of `r sum(conc.table[1,])` MZ twin pairs, `r conc.table[1,3]` (`r percenttab[1,3]`%) were concordant for language problems, `r conc.table[1,2]` (`r percenttab[1,2]`%) were discordant for language problems, and the remaining `r conc.table[1,1]` (`r percenttab[1,1]`%) had neither twin with language problems. For `r sum(conc.table[2,])` DZ twin pairs, `r conc.table[2,3]` (`r percenttab[2,3]`%) were concordant for language problems, `r conc.table[2,2]` (`r percenttab[2,2]`%) were discordant for language problems, and the remaining `r conc.table[2,1]` (`r percenttab[2,1]`%) had neither twin with language problems. 
 
-Handedness assessments were completed for all children, and language laterality assessment (see below) was available for `r Npairwithdopp` pairs. The breakdown of the sample by zygosity and gender is shown in Table 2.
+Handedness assessments were completed for all children, and language laterality assessment (see below) was available for `r Npairwithdopp` pairs. The breakdown of the sample by zygosity and gender is shown in Table `r tabnum+1`.
 
-```{r table2, echo=FALSE}
+```{r tablesubs, echo=FALSE}
 #--------------------------------------------------------------
 # Create table N twin pairs by zygo and sex
 #--------------------------------------------------------------
@@ -265,25 +280,25 @@ w<-which(doubledata$zygosex==31)
 doubledata$zygosex[w] <-30
 doubledata$zygosex<-as.factor(doubledata$zygosex)
 levels(doubledata$zygosex) <- c('MZ female','MZ male','DZ female','DZ male','DZ male/female')
-tab2 <- table(doubledata$zygosex,doubledata$doppout)
-tab2f<-data.frame(cbind(tab2[1:5],tab2[1:5],tab2[6:10]))
-tab2f[,1]<-tab2f[,2]+tab2f[,3]
-tab2f[,1:2]<-tab2f[,1:2]/2
-tab2f<-tab2f[,1:2]
-tab2f<-data.frame(tab2f)
-colnames(tab2f)<-c('All','With_fTCD')
-nr<-nrow(tab2f)
-tab2f[(nr+1),]<-colSums(tab2f)
+tab1 <- table(doubledata$zygosex,doubledata$doppout)
+tab1f<-data.frame(cbind(tab1[1:5],tab1[1:5],tab1[6:10]))
+tab1f[,1]<-tab1f[,2]+tab1f[,3]
+tab1f[,1:2]<-tab1f[,1:2]/2
+tab1f<-tab1f[,1:2]
+tab1f<-data.frame(tab1f)
+colnames(tab1f)<-c('All','With_fTCD')
+nr<-nrow(tab1f)
+tab1f[(nr+1),]<-colSums(tab1f)
 
 forflex<-c(levels(doubledata$zygosex),'Total')
-#stargazer(tab2f,type='text',title='Table 2: N twin pairs by zygosity and sex',summary=FALSE)
+#stargazer(tab1f,type='text',title='Table 2: N twin pairs by zygosity and sex',summary=FALSE)
 mycaption<-paste0('Table ',tabnum,': N twin pairs by zygosity and sex')
-#tab2f %>% kable(booktabs = T, caption = mycaption) %>% 
+#tab1f %>% kable(booktabs = T, caption = mycaption) %>% 
 #  kable_styling()
-tab2f<-cbind(forflex,tab2f)
-tab2f[,2]<-as.integer(tab2f[,2])
-tab2f[,3]<-as.integer(tab2f[,3])
-flextable(tab2f,col_keys=names(tab2f))
+tab1f<-cbind(forflex,tab1f)
+tab1f[,2]<-as.integer(tab1f[,2])
+tab1f[,3]<-as.integer(tab1f[,3])
+flextable(tab1f,col_keys=names(tab1f))
 
 #--------------------------------------------------------------
 
@@ -331,12 +346,12 @@ powertable <-data.frame(matrix(NA,nrow=20,ncol=5)) #initialise table to hold res
 myaa<-vector() #blank vector: will hold smallest value of aa with lower CI > 0
 colnames(powertable)<-c('MZ/DZ Npairs','true.aa','est.aa','se.est','lowerCI')
 thisrow<-0
-for (myn in 2:3){ #estimate for both sample sizes, as shown in cols 2 and 3 of tab2f
+for (myn in 2:3){ #estimate for both sample sizes, as shown in cols 2 and 3 of tab1f
 for (myadd in seq(5,50, by=5)){ #estimate for a2 values from .05 to .5 in steps of .5
   thisrow<-thisrow+1
 aa=myadd/100 # 
-Nmz=tab2f[1,myn]+tab2f[2,myn] #take Ns from previous tab2f
-Ndz=tab2f[3,myn]+tab2f[4,myn]+tab2f[5,myn]
+Nmz=tab1f[1,myn]+tab1f[2,myn] #take Ns from previous tab1f
+Ndz=tab1f[3,myn]+tab1f[4,myn]+tab1f[5,myn]
 
 
 nv <- 1 #N variables
@@ -765,7 +780,7 @@ Ea2<-round(Ea^2,2) #preserve initial model
 The non-normality of the handedness measures suggests that a better indication of pairwise agreement would be obtained from polychoric correlations, which assume the data come from normally distributed continuous latent variables. The polychoric function from the psych package in R (Revelle, 2018) was used to compute polychoric correlations for handedness measures in MZ and DZ twins. For the Edinburgh Handedness Inventory, this gave a value of rho = `r round(Emypoly.mz,3)` for MZ and `r round(Emypoly.dz,3)` for DZ twins. For the Quantification of Hand Preference Measure, values were divided by 4 and rounded to give a workable range of values, and the resulting values of rho were `r round(Qmypoly.mz,3)` for MZ and `r round(Qmypoly.dz,3)` for DZ twins.  Because of concerns about the non-normality of the handedness data, analyses of the EHI and QHP were repeated using the umx package (Bates, 2018) to run an ordinal version of ACE analysis. This gave closely similar results to the standard analysis using the AE model, with values of a^2^ of `r Ea2` and `r Qa2` for EHI and QHP respectively, and a^2^ close to zero.   
 
 
-```{r DFanalysis, echo=FALSE, include=FALSE}
+```{r DFanalysis, include=FALSE}
 dftable <- data.frame(matrix(nrow = 3, ncol = 10))
 colnames(dftable)<-c('Measure','N MZ','N DZ','MZ proband mean (SD)','DZ proband mean (SD)',
                      'MZ co-twin mean (SD)','DZ co-twin mean (SD)','t','df','p')
@@ -847,21 +862,21 @@ dftable[thisrow,10]<-round(myt$p.value,3)
 Dcat<-filter(doubledata,li_cat>2)
 dfreg1<-lm(Dcat$lat_index2~Dcat$lat_index*Dcat$MZDZ)
 summary(dfreg1)
+```
 
+```{r maketab4, echo=FALSE}
 tabnum<-tabnum+1
 mycaption<-paste0('Table ',tabnum,': Extreme probands, t-tests comparing MZ/DZ co-twins')
 #dftable %>% kable(booktabs = T, caption = mycaption) %>% 
 #  kable_styling()
 tdftable<-data.frame(t(dftable))
 colnames(tdftable)<-c('Edinburgh Handedness','QHP','Language LI')
-tdftable<-tdftable[-1,]
-#flextable(dftable)
+tdftable<-tdftable[-1,] #top row will now be header
 
-ft2<-flextable(data = tdftable) %>% 
-  theme_booktabs( include.rownames = TRUE) %>% 
-  set_header_labels( c('Edinburgh Handedness','QHP','Language LI' ))
+rowvec<-rownames(tdftable)
+tdftable<-cbind(rowvec,tdftable)
+flextable(tdftable)
 
-ft2 
 #https://davidgohel.github.io/flextable/articles/examples.html
 ```
 
