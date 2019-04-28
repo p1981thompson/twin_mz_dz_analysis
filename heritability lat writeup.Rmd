@@ -14,7 +14,6 @@ output:
 ```{r setup,  include=FALSE, echo=FALSE}
 #---------------------------------------------------------------
 knitr::opts_chunk$set(message = FALSE,warning=FALSE)
-batesinfo <- 1 #bits for tim bates
 
 require(yarrr)
 require(stargazer) #Hlavac, Marek (2018). stargazer: Well-Formatted Regression and Summary Statistics Tables.
@@ -37,8 +36,11 @@ source('http://ibg.colorado.edu/cdrom2016/verhulst/Power/powerFun.R')
 #mxOption(NULL, 'Default optimizer', 'NPSOL') #?? this gets 'could not find function mxOption'
 
 tabnum<-0 #keeps track of table numbers. 
+readprocessed<-1 #if set to one, read processed data from OSF
 ```
 ```{r readdata, echo=FALSE}
+if(readprocessed==0){
+
 #---------------------------------------------------------------
 #Read data before any text as need to refer to Ns etc computed here.
 #Version from April 2019 includes LI indices using means rather than peaks, and also has measure of
@@ -51,9 +53,11 @@ mydata<-read_csv(paste0(mydir,"Data/",myfile))
 #str(mydata)
 w<-which(colnames(mydata)=='include')  #this relates to exclusion criteria re IQ,autism etc : not used here
 colnames(mydata)[w]<-'myinclude' #to avoid problems with having 'include' as column name
+}
 ```
 
 ```{r makeLIcat, echo=FALSE}
+if(readprocessed==0){
 mydata$lat_index<-as.numeric(mydata$myli_mean)  #the original laterality_index value in file is LI from peak
 #my_li_mean was added in April 2019
 mydata$myse_mean<-as.numeric(mydata$myse_mean)
@@ -94,10 +98,12 @@ oldnewLIcorDF<-nrow(temp)-2
 
 #check split half reliablity
 splithalfr<-cor(temp$my_li_mean_even,temp$my_li_mean_odd,use='pairwise.complete.obs')
+}
 ```
 ```{r multitasklat, echo=FALSE}
+if(readprocessed==0){
 #-------------------------------------------------------
-# Create a variable that has categorical laterality for 2 handedness tasks and LI
+# Create a variable that has categorical laterality for 2 handedness tasks and LI - this is NOT used for twin genetic paper
 #-------------------------------------------------------
 mydata$lat3<-2 #default is mixed laterality = 2
 w<-which(mydata$qhp_handedness<11&mydata$ehp_handedness<6&mydata$li_cat>1)
@@ -117,10 +123,11 @@ mydata$taskssum[w]<-mydata$taskssum[w]+1
 w<-which(is.na(mydata$li_cat))
 mydata$lat3[w]<-NA
 mydata$taskssum[w]<-NA
-
+}
 ```
 
 ```{r selectcols, echo=FALSE}
+if(readprocessed==0){
 #----------------------------------------------------------
 # Produce data frame of selected columns 
 #----------------------------------------------------------
@@ -132,11 +139,12 @@ data.short$doppexcl <- 0
 data.short$doppexcl[w] <-1
 w<-which(data.short$ehp_write==999)
 data.short$ehp_write[w]<-NA
-
+}
 ```
 
 ```{r doublentry, echo=FALSE, include=FALSE}
-#-------------------------------------------------------
+if(readprocessed==0){
+  #-------------------------------------------------------
 # Create double entry file with twin 1 and 2 aligned
 # Assumes twins from pair are in adjacent rows
 #-------------------------------------------------------
@@ -182,7 +190,13 @@ pie(slices, labels=lbls, main="Language concordance: \nIdentical twins")
 slices <- conc.table[2,2:3]
 
 pie(slices, labels =lbls, main="Language concordance: \nNonidentical twins")
+}
+```
 
+```{r readdoubledata}
+if(readprocessed==1){
+doubledata<-read_csv('TwinLatOSF.csv')
+}
 ```
 
 ```{r exclusions, echo=FALSE}
@@ -299,6 +313,8 @@ tab1f<-cbind(forflex,tab1f)
 colnames(tab1f)[1]<-'Twin type'
 tab1f[,2]<-as.integer(tab1f[,2])
 tab1f[,3]<-as.integer(tab1f[,3])
+#calling flextable for first time gives huge N of Fontconfig warnings, but flextable
+#does run. This seems a known problem ftp://ftp.oregonstate.edu/.1/cran/web/checks/check_results_flextable.html
 ft1 <- flextable(tab1f)
 ft1 <- width(ft1, width = 1.75)
 ft1
@@ -432,7 +448,7 @@ if (powertable[thisrow,5]<0){thisaa<-thisrow}
 ```
 ## Data analysis
 1. AE modeling 
-As noted above, the usual approach to twin analysis involves decomposing variance of a phenotype into components attributed to additive genetic (a), common (shared) environment (c) and nonshared environment (e). This decomposition is typically implemented using structural equation modeling with maximum likelihood estimates (Rijsdijk & Sham, 2002), which make it possible to test whether the data meet underlying assumptions, to compare fit of different models, and to obtain standard errors of estimates. Large samples are needed to accurately estimate additive genetic (a^2^), shared environmental (c^2^) influences, both of which lead to positive covariance between two members of both MZ and DZ pairs: they are distinguished by the fact that genetic influence leads to greater covariance for MZ than for DZ twins. In the context of laterality, however, prior studies have found shared environmental influences to be negligible in adequately powered twin studies, and it is safe to ignore the c^2^ term. This simplifies the analysis, making it possible to detect genetic effects with smaller samples. An AE model was fitted to the raw data using the OpenMx package (Neale et al, 2016).
+As noted above, the usual approach to twin analysis involves decomposing variance of a phenotype into components attributed to additive genetic (a), common (shared) environment (c) and nonshared environment (e). This decomposition is typically implemented using structural equation modeling with maximum likelihood estimates (Rijsdijk & Sham, 2002), which make it possible to test whether the data meet underlying assumptions, to compare fit of different models, and to obtain standard errors of estimates. Large samples are needed to accurately estimate additive genetic (a^2^), shared environmental (c^2^) influences, both of which lead to positive covariance between two members of both MZ and DZ pairs: they are distinguished by the fact that genetic influence leads to greater covariance for MZ than for DZ twins. In the context of laterality, however, prior studies have found shared environmental influences to be negligible in adequately powered twin studies, and it is safe to ignore the c^2^ term. This simplifies the analysis, making it possible to detect genetic effects with smaller samples, as any positive correlation between twins and their cotwins can be interpreted as a genetic effect. An AE model was fitted to the raw data using the OpenMx package (Neale et al, 2016).
 
 2. Power analysis 
 A power analysis using a modified version of the powerFun function in OpenMx showed that for the larger sample of twins for whom handedness data were available, there is power to detect heritability, a^2^, in an AE model of `r round(myaa[1]^2,2)` or greater, and for the smaller sample with language laterality data, an effect of `r round(myaa[2]^2,2)` or greater is detectable. Thus even the low heritability estimates reviewed in the Introduction, for handedness, structural asymmetry and dichotic listening, should be detectable with this sample size.
@@ -748,7 +764,7 @@ ft
 # = Ordinal example from Bates with handedness data substituted=
 # ===================
 require(umx)
-for (i in 1:2){
+for (i in 1:1){
   mytitle<-'EHI'
 doubledata$hand1<-as.factor(round(doubledata$ehp_handedness,0)) #just to fit labelling convention
 doubledata$hand2<-as.factor(round(doubledata$ehp_handedness2,0))
@@ -758,30 +774,35 @@ doubledata$hand1<-as.factor(round(doubledata$qhp_handedness,0))
 doubledata$hand2<-as.factor(round(doubledata$qhp_handedness2,0))
 }
 nlevels<-length(levels(doubledata$hand1))
-
 ordDVs = c("hand1", "hand2")
 selDVs = c("hand")
 # Make the ordinal variables into mxFactors (ensure ordered is TRUE, and require levels)
 singledata<-doubledata[doubledata$twin==1,]
-singledata[, ordDVs] <- mxFactor(singledata[, ordDVs], levels = c(0:nlevels))
+singledata[, ordDVs] <- mxFactor(singledata[, ordDVs], levels = c(0:(nlevels-1)))
 
 mzData <- singledata[singledata$MZDZ ==1, ]
 dzData <- singledata[singledata$MZDZ ==2, ]
 
 
-m1 = umxACE(selDVs = selDVs, dzData = dzData, mzData = mzData, sep = '',thresholds='deviationBased')
+m1 = umxACE(selDVs = selDVs, dzData = dzData, mzData = mzData, sep = '')
 mytitle
-umxSummary(m1)
-parameters(m1)
-Qa<-as.numeric(unlist(parameters(m1))[46]) #hard coded to get the right index :-(
-Qa2<-round(Qa^2,2)
-if(i==1)
-  {Ea<-as.numeric(unlist(parameters(m1))[24])#hard coded to get the right index :-(
-Ea2<-round(Ea^2,2) #preserve initial model
- }
+umxSummary(m1,showEstimates='std',SE=TRUE,report='markdown',RMSEA_CI=TRUE)
+aSE<-m1$output$standardErrors[nlevels] #position 22 for estimate of a path for QHP
+Qa<-m1$output$estimate[nlevels]
+
+QlowCI<-(Qa-1.96*aSE)
+QhiCI<-(Qa+1.96*aSE)
+
+if (i==1){ #copy values for EHI before computing for QHP
+  Ea<-Qa
+  ElowCI<-QlowCI
+  EhiCI<-QhiCI
 }
+  
+}
+
 ```
-The non-normality of the handedness measures suggests that a better indication of pairwise agreement would be obtained from polychoric correlations, which assume the data come from normally distributed continuous latent variables. The polychoric function from the psych package in R (Revelle, 2018) was used to compute polychoric correlations for handedness measures in MZ and DZ twins. For the Edinburgh Handedness Inventory, this gave a value of rho = `r round(Emypoly.mz,3)` for MZ and `r round(Emypoly.dz,3)` for DZ twins. For the Quantification of Hand Preference Measure, values were divided by 4 and rounded to give a workable range of values, and the resulting values of rho were `r round(Qmypoly.mz,3)` for MZ and `r round(Qmypoly.dz,3)` for DZ twins.  Because of concerns about the non-normality of the handedness data, analyses of the EHI and QHP were repeated using the umx package (Bates, 2018) to run an ordinal version of ACE analysis. This gave closely similar results to the standard analysis using the AE model, with values of a^2^ of `r Ea2` and `r Qa2` for EHI and QHP respectively, and a^2^ close to zero.   
+The non-normality of the handedness measures suggests that a better indication of pairwise agreement would be obtained from polychoric correlations, which assume the data come from normally distributed continuous latent variables. The polychoric function from the psych package in R (Revelle, 2018) was used to compute polychoric correlations for handedness measures in MZ and DZ twins. For the Edinburgh Handedness Inventory, this gave a value of rho = `r round(Emypoly.mz,3)` for MZ and `r round(Emypoly.dz,3)` for DZ twins. For the Quantification of Hand Preference Measure, values were divided by 4 and rounded to give a workable range of values, and the resulting values of rho were `r round(Qmypoly.mz,3)` for MZ and `r round(Qmypoly.dz,3)` for DZ twins.  Because of concerns about the non-normality of the handedness data, analyses of the EHI and QHP were repeated using the umx package (Bates, 2018) to run an ordinal version of ACE analysis. This gave closely similar results to the standard analysis using the AE model, with values of a^2^ of `r round(Ea^2,2)` and `r round(Qa^2m2)` for EHI and QHP respectively, and c^2^ close to zero.   
 
 
 ```{r DFanalysis, include=FALSE}
@@ -884,6 +905,22 @@ ft3<-flextable(tdftable)
 ft3<-width(ft3, width = 1.75)
 ft3
 #https://davidgohel.github.io/flextable/articles/examples.html
+```
+
+```{r savedoubledata}
+#change the ID number - make random set of nums
+if(readprocessed==0){
+npairs<-nrow(doubledata)/2
+nupairnum<-sample(1000, npairs, replace = FALSE)
+doubledata$rand_id[1:npairs]<-paste0(nupairnum,'A')
+doubledata$rand_id[(npairs+1):(2*npairs)]<-paste0(nupairnum,'B')
+doubledata$fam_randid<-rep(nupairnum,2)
+dataforOSF<-dplyr::select(doubledata,c(rand_id,fam_randid,age_at_test,female,zygosity,n_language_low,myinclude,twin,n_trials,lat_index,qhp_handedness,ehp_handedness,lang_probs,li_cat,ehp_write,doppexcl,female2,n_language_low2,myinclude2,twin2,n_trials2,lat_index2,qhp_handedness2,ehp_handedness2,lang_probs2,li_cat2,ehp_write2,doppexcl2,MZDZ,gender2,langconcord,doppout,zygosex))
+dataforOSF$age_at_test<-round(dataforOSF$age_at_test/24,0) #age in 2 yr bands to improve anonymisation
+dataforOSF$age_at_test<-as.factor(dataforOSF$age_at_test)
+levels(dataforOSF$age_at_test)<-c('6_7','8_9','10_11','12_13')
+write.csv(dataforOSF,'TwinLatOSF.csv',row.names=FALSE)
+}
 ```
 
 ```{r LIconcordance, include=FALSE, echo=FALSE}
