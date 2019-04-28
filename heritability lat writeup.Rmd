@@ -758,47 +758,58 @@ ft
 
 *Table `r tabnum`: Heritability estimates from AE model for different measures*
 
+```{r umxcompute,echo=FALSE, include=FALSE}
+doumx <- function(col1,col2){
+  mynrow<-nrow(doubledata)
+  zygo<-doubledata$MZDZ
+myhand1<-round(doubledata[,col1],0) #just to fit labelling convention
+myhand2<-round(doubledata[,col2],0)
+for.umx<-as.data.frame(cbind(zygo,myhand1,myhand2))
+colnames(for.umx)<-c('zygo','hand1','hand2')
+for.umx$hand1<-as.factor(for.umx$hand1)
+for.umx$hand2<-as.factor(for.umx$hand2)
+nlevels<-nlevels(for.umx$hand1)
 
-```{R umxordinal, echo=FALSE, include=FALSE}
-# ===================
-# = Ordinal example from Bates with handedness data substituted=
-# ===================
-require(umx)
-for (i in 1:1){
-  mytitle<-'EHI'
-doubledata$hand1<-as.factor(round(doubledata$ehp_handedness,0)) #just to fit labelling convention
-doubledata$hand2<-as.factor(round(doubledata$ehp_handedness2,0))
-if (i==2){
-  mytitle<-'QHP'
-doubledata$hand1<-as.factor(round(doubledata$qhp_handedness,0))
-doubledata$hand2<-as.factor(round(doubledata$qhp_handedness2,0))
-}
-nlevels<-length(levels(doubledata$hand1))
+for.umx<-for.umx[1:(mynrow/2),] #make single entry
+
 ordDVs = c("hand1", "hand2")
 selDVs = c("hand")
 # Make the ordinal variables into mxFactors (ensure ordered is TRUE, and require levels)
-singledata<-doubledata[doubledata$twin==1,]
-singledata[, ordDVs] <- mxFactor(singledata[, ordDVs], levels = c(0:(nlevels-1)))
 
-mzData <- singledata[singledata$MZDZ ==1, ]
-dzData <- singledata[singledata$MZDZ ==2, ]
+for.umx[, ordDVs] <- mxFactor(for.umx[, ordDVs], levels = c(0:nlevels))
 
-
+mzData <- for.umx[for.umx$zygo ==1, ]
+dzData <- for.umx[for.umx$zygo ==2, ]
 m1 = umxACE(selDVs = selDVs, dzData = dzData, mzData = mzData, sep = '')
-mytitle
-umxSummary(m1,showEstimates='std',SE=TRUE,report='markdown',RMSEA_CI=TRUE)
-aSE<-m1$output$standardErrors[nlevels] #position 22 for estimate of a path for QHP
-Qa<-m1$output$estimate[nlevels]
 
+umxSummary(m1,showEstimates='std',SE=TRUE,report='markdown',RMSEA_CI=TRUE)
+aSE<-m1$output$standardErrors[nlevels] #nlevels does identify the correct row here
+Qa<-m1$output$estimate[nlevels]
 QlowCI<-(Qa-1.96*aSE)
 QhiCI<-(Qa+1.96*aSE)
+umxresult<-as.data.frame(c(Qa,aSE,QlowCI,QhiCI,Qa^2))
 
-if (i==1){ #copy values for EHI before computing for QHP
-  Ea<-Qa
-  ElowCI<-QlowCI
-  EhiCI<-QhiCI
+return(umxresult)
 }
-  
+```
+
+```{r umxordinal, echo=FALSE, include=FALSE}
+# ===================
+# = Ordinal example from Bates with handedness data substituted=
+# ===================
+umxresult<-data.frame(matrix(NA,nrow=5,ncol=2))
+colnames(umxresult)<-c('EHI','QHP')
+rownames(umxresult)<-c('a','a.SE','aLowCI','aHighCI','a2')
+for (i in 1:2){
+  mycolname<-'ehp_handedness'
+  if (i==2){
+   mycolname<-'qhp_handedness'
+   }
+  col1<-which(colnames(doubledata)==mycolname)
+  col2<-which(colnames(doubledata)==paste0(mycolname,'2'))
+
+umxresult[,i]<-doumx(col1,col2)
+
 }
 
 ```
