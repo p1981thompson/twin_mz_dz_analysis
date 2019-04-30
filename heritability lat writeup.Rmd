@@ -176,6 +176,19 @@ w <-which(doubledata$lang_probs2==0)
 doubledata$langconcord[w] <-1
 w1<- which(doubledata$langpair=='00')
 doubledata$langconcord[w1] <-0
+}
+```
+
+
+
+```{r readdoubledata,include=FALSE}
+if(readprocessed==1){
+doubledata<-read_csv('TwinLatOSF.csv')
+doubledata$fam_id<-doubledata$fam_randid #need fam_id variable at later stage
+}
+```
+
+```{r countconcordanttwins, echo=FALSE,include=FALSE}
 conc.table<-table(doubledata$MZDZ,doubledata$langconcord,doubledata$twin)
 conc.table<-conc.table[,,1] #one twin pair only
 rownames(conc.table)<-c('MZ','DZ')
@@ -190,13 +203,7 @@ pie(slices, labels=lbls, main="Language concordance: \nIdentical twins")
 slices <- conc.table[2,2:3]
 
 pie(slices, labels =lbls, main="Language concordance: \nNonidentical twins")
-}
-```
 
-```{r readdoubledata}
-if(readprocessed==1){
-doubledata<-read_csv('TwinLatOSF.csv')
-}
 ```
 
 ```{r exclusions, echo=FALSE}
@@ -227,16 +234,16 @@ nlowN<-length(unique(doubledata$fam_id[w]))
 ```
 
 ## Abstract
-### Background 
+**Background** 
 It is widely assumed that individual differences in language lateralisation have a strong genetic basis, yet prior studies show low heritability (around .25) for the related trait of handedness, and two twin studies of structural brain asymmetry obtained similarly low estimates. This report describes heritability estimates from a twin study of language laterality and handedness phenotypes. 
 
-### Methods 
+**Methods** 
 Handedness data was available from the Edinburgh Handedness Inventory (EHI) and Quantification of Hand Preference (QHP) for `r Npairwithhand` twin pairs (49% monozygotic) aged from 6 to 11 years. A language laterality index was obtained for `r Npairwithdopp` twin pairs, who completed a protocol where relative blood flow through left and right middle cerebral arteries was measured using transcranial Doppler ultrasound while the child described animation sequences. Heritability was assessed using conventional structural equation modeling, assuming no effect of shared environment (AE model), with a nonparametric model being used for handedness data. 
 
-### Results 
+**Results**
 For the two handedness measures, heritability estimates were consistent with prior research: .23 and .22 respectively for the EHI and QHP on nonparametric analysis. For the language laterality index, however, the twin-cotwin correlations were very close to zero for both MZ and DZ twins, and the heritability estimate was zero. 
 
-### Conclusions 
+**Conclusions** 
 This single study cannot rule out a genetic effect on language lateralisation: although the split-half reliability of the laterality index was high (.85) we do not have information on test-retest reliability in children, and it is possible that noisy data may affect twin-cotwin correlations. The sample is also small for genetic analysis, though power of the AE model is substantially higher than for a conventional model that includes a term for shared environment. These results do nevertheless raise the provocative possibility that individual differences in cerebral lateralisation may be caused solely by stochastic variation in neurodevelopment.
 
 
@@ -347,7 +354,7 @@ A maximum of 30 trials was administered, depending on the child's tolerance of t
 
 The analysis of the animation task data consists of a standard sequence of processing steps, following original work by Deppe et al (1997). We used a custom script written in R (R core team, 2013) for data processing. This included an initial step of identifying trials where there was very brief signal dropout (affecting one datapoint) and interpolate the mean value in such cases. Trials with more prolonged signal dropout were discarded. After these preliminary steps, heart cycle integration was applied to remove the heartbeat, followed by signal normalisation, artefact rejection, epoching and baseline correction.The averaged left and right velocity plots were subtracted to give a difference waveform.
 
-In our previous report of data from this sample (Wilson & Bishop, 2018), we used the conventional approach for obtaining a laterality index based on the peak difference (maximum or minimum) in a period of interest, predefined as 4 to 14 seconds after the cue to speak. Our subsequent studies with adults suggested that this method is not ideal, because there are cases where the difference wave shifts from positive to negative, or vice versa, within the period of interest, and quite minor differences in size of positive and negative peaks can determine whether laterality is coded as left or right (Woodhead et al., 2018).  Accordingly, in more recent studies, we have calculated a laterality index (LI) as the mean amplitude of blood flow velocity difference in the whole period of interest. In the current dataset, the correlation between this mean-based LI and the traditional peak-based LI is very strong: Pearson correlation = `r round(oldnewLIcor,3)`, DF = `r oldnewLIcorDF`, but the distributions differ. The split-half reliability, based on correlation of LIs from odd and even trials is closely similar to that from the original method, r = `r round(splithalfr,2)`. The original method, however, gives a non-normal distribution of laterality indices, with a point of rarity around zero, which appears to be a spurious artefact of the method of computation.
+In our previous report of data from this sample (Wilson & Bishop, 2018), we used the conventional approach for obtaining a laterality index based on the peak difference (maximum or minimum) in a period of interest, predefined as 4 to 14 seconds after the cue to speak. Our subsequent studies with adults suggested that this method is not ideal, because there are cases where the difference wave shifts from positive to negative, or vice versa, within the period of interest, and quite minor differences in size of positive and negative peaks can determine whether laterality is coded as left or right (Woodhead et al., 2018).  Accordingly, in more recent studies, we have calculated a laterality index (LI) as the mean amplitude of blood flow velocity difference in the whole period of interest. In the current dataset, the correlation between this mean-based LI and the traditional peak-based LI is very strong: Pearson correlation = 0.907, DF = 306, but the distributions differ. The split-half reliability, based on correlation of LIs from odd and even trials is closely similar to that from the original method, r = .85. The original method, however, gives a non-normal distribution of laterality indices, with a point of rarity around zero, which appears to be a spurious artefact of the method of computation.
 
 Following Wilson and Bishop (2018) we excluded data from `r nlowN` pairs where one of the twins had fewer than 12 accepted trials, as the LI is likely to be unreliable when based on such a small amount of data. In addition, data were excluded for one twin pair where one child's laterality index was more than 5 SD from the mean. 
 
@@ -918,7 +925,7 @@ ft3
 #https://davidgohel.github.io/flextable/articles/examples.html
 ```
 
-```{r savedoubledata}
+```{r savedoubledata, include=FALSE, echo=FALSE}
 #change the ID number - make random set of nums
 if(readprocessed==0){
 npairs<-nrow(doubledata)/2
@@ -935,6 +942,7 @@ write.csv(dataforOSF,'TwinLatOSF.csv',row.names=FALSE)
 ```
 
 ```{r LIconcordance, include=FALSE, echo=FALSE}
+#Exploring data - not included in paper
 #Logic of analysis: R-handedtwin with R-handedcotwin should be different genetically
 #from R handed twin with L handed cotwin
 #latter more likely to lack right shift factor
@@ -989,7 +997,7 @@ We cannot rule out the possibility that language laterality is the consequence o
 
 
 ```{r otherbits, include=FALSE, echo=FALSE}
-## Thoughts
+## Further bits - just for historical interest, not used
 #Other studies find high heritability for raw L and R measures - it's just the asymmetry score that is not high.
 #I found that for hand skill - also for brain things
 #Would we find the same here? If so, what would it mean?
@@ -1197,7 +1205,9 @@ Figure 1. Density plots for handedness and language laterality indices
 Figure 2. Scatterplots by zygosity for handedness and language laterality indices. The data from handedness measures are jittered; Spearman correlation coefficients are shown.
 
 
+![Figure 1. Density plots for handedness and language laterality indices](plots/combined_densities.png)
 
+![Figure 2. Scatterplots by zygosity for handedness and language laterality indices. The data from handedness measures are jittered; Spearman correlation coefficients are shown.](plots/combined_plot.png)
 
 ```{r sessinfo, include=FALSE}
 sessionInfo()
