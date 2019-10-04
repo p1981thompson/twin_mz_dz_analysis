@@ -1,8 +1,8 @@
 ---
 title: "Negligible heritability of language laterality assessed by functional transcranial
   Doppler ultrasound: a twin study"
-author: "DVM Bishop"
-date: "16/05/2019"
+author: "Dorothy V M Bishop and Timothy C Bates"
+date: "3rd October 2019"
 output:
   word_document: default
   pdf_document: default
@@ -14,7 +14,11 @@ output:
 ```{r setup,  include=FALSE, echo=FALSE}
 #---------------------------------------------------------------
 knitr::opts_chunk$set(message = FALSE,warning=FALSE)
+#install.OpenMx("travis") #latest OpenMx if not already installed
+#Needs OpenMx, which you get with following command (not CRAN)
+#Hmm - having problems with OpenMx - now using Cran version
 
+#source('https://openmx.ssri.psu.edu/software/getOpenMx.R')
 require(yarrr)
 require(stargazer) #Hlavac, Marek (2018). stargazer: Well-Formatted Regression and Summary Statistics Tables.
 # R package version 5.2.1. https://CRAN.R-project.org/package=stargazer 
@@ -27,6 +31,8 @@ library(kableExtra) #hmm, this does not work with Word output
 require(flextable)
 library(officer)
 library(umx)
+# install.OpenMx("NPSOL") #From Tim B: can't get this to work! but probably unimportant
+# umx_set_optimizer('NPSOL') # from Tim B who says probably unimportant!
 
 #include = FALSE prevents code and results from appearing in the finished file. R Markdown still runs the code in the chunk, and the results can be used by other chunks. 
 #echo = FALSE prevents code, but not the results from appearing in the finished file.
@@ -40,6 +46,7 @@ readprocessed<-1 #if set to one, read processed data from OSF
 ```
 ```{r readdata, echo=FALSE}
 if(readprocessed==0){
+
 
 #---------------------------------------------------------------
 #Read data before any text as need to refer to Ns etc computed here.
@@ -183,7 +190,8 @@ doubledata$langconcord[w1] <-0
 
 ```{r readdoubledata,include=FALSE}
 if(readprocessed==1){
-doubledata<-read_csv('TwinLatOSF.csv')
+#doubledata<-  read.csv('https://osf.io/m9jph/download') #when data public can read in direct from OSF
+doubledata<-read.csv('TwinLatOSF.csv',stringsAsFactors = FALSE)
 doubledata$fam_id<-doubledata$fam_randid #need fam_id variable at later stage
 }
 ```
@@ -241,16 +249,15 @@ It is widely assumed that individual differences in language lateralisation have
 Handedness data was available from the Edinburgh Handedness Inventory (EHI) and Quantification of Hand Preference (QHP) for `r Npairwithhand` twin pairs (49% monozygotic) aged from 6 to 11 years. A language laterality index was obtained for `r Npairwithdopp` twin pairs, who completed a protocol where relative blood flow through left and right middle cerebral arteries was measured using transcranial Doppler ultrasound while the child described animation sequences. Heritability was assessed using conventional structural equation modeling, assuming no effect of shared environment (AE model), with a nonparametric model being used for handedness data. 
 
 **Results**
-For the two handedness measures, heritability estimates were consistent with prior research: .23 and .22 respectively for the EHI and QHP on nonparametric analysis. For the language laterality index, however, the twin-cotwin correlations were very close to zero for both MZ and DZ twins, and the heritability estimate was zero. 
+For the two handedness measures, heritability estimates were consistent with prior research: .23 and .22 respectively for the EHI and QHP on nonparametric analysis. For the language laterality index, however, the twin-cotwin correlations were very close to zero for both MZ and DZ twins, and the heritability estimate was zero. Power to detect heritability of .25 was 91%.
 
 **Conclusions** 
-This single study cannot rule out a genetic effect on language lateralisation: although the split-half reliability of the laterality index was high (.85) we do not have information on test-retest reliability in children, and it is possible that noisy data may affect twin-cotwin correlations. The sample is also small for genetic analysis, though power of the AE model is substantially higher than for a conventional model that includes a term for shared environment. These results do nevertheless raise the provocative possibility that individual differences in cerebral lateralisation may be caused solely by stochastic variation in neurodevelopment.
-
+A single study showing negligible heritability for language laterality cannot rule out a genetic effect on language lateralisation. It is possible that the low twin-cotwin correlations were affected by noisy data: although the split-half reliability of the laterality index was high (.85), we did not have information on test-retest reliability in children, which is likely to be lower. Although the sample is small for genetic analysis, the power of the AE model is substantially higher than for a conventional model that includes a term for shared environment. These results raise the provocative possibility that individual differences in cerebral lateralisation for language may be caused solely by stochastic variation in neurodevelopment.
 
 ## Introduction
 Lateralisation of language and motor function in humans are traits with two notable features: First, there is a pronunced population bias to one side - to the left for lateralisation of language in the brain, and to the right for handedness; second there is individual variation in the extent of bias; a minority of individuals show a reversal of the typical pattern, and others show little or no asymmetry.
 
-Other primates show some indications of lateralised functions, but humans are distinctive in their strong population bias to right-handedness. It is often assumed that evolution of manual laterality is related to development of a complex and lateralised language faculty in humans, but the biological origins of the population bias are not well understood for either trait. There is an association between handedness and language lateralisation, but it is complex: whereas around 95% of right-handers have left-hemisphere language, this is true for around 67% of left-handers (see Bishop, 1990a, for review).
+Other primates show some indications of lateralised functions, but humans are distinctive in their strong population bias to right-handedness. It is often assumed that evolution of manual laterality is related to development of a complex and lateralised language faculty in humans, but the biological origins of the population bias are not well understood for either trait. There is an association between handedness and language lateralisation, but it is complex: whereas around 95% of right-handers have left-hemisphere language, this is true for around 67% of left-handers (see Bishop, 1990a, for review). 
 
 Twins provide a useful natural experiment for estimating the contribution of genetic variation to individual differences in a trait. The twin method compares the similarity of identical (monozygotic or MZ) twins versus non-identical (dizygotic or DZ twins) to derive estimates of the relative contributions of genetic variants, environment shared by the twins, and other twin-specific influences (including chance) on individual variation in a trait. This is best understood intuitively by imagining a variety of hypothetical situations. In the first, the trait is solely determined by random chance: in that case, two members of a twin pair (A and B) would be no more similar than two unrelated people, and in a sample of twins, the correlation between twin A and twin B would be zero, regardless of zygosity. In a second fictitious scenario, the trait is solely determined by an environmental factor common to both twins, such as home environment. In that case, there would be perfect correlation between the traits for twin A and twin B, regardless of zygosity. In the third scenario, the trait is determined solely by genes: because MZ twins are genetically identical, the correlation between two members of a twin pair will be 1, but for DZ twins, who on average have 50% of their segregating genes in common, the correlation will be .5. 
 
@@ -312,7 +319,7 @@ nr<-nrow(tab1f)
 tab1f[(nr+1),]<-colSums(tab1f)
 
 forflex<-c(levels(doubledata$zygosex),'Total')
-#stargazer(tab1f,type='text',title='Table 2: N twin pairs by zygosity and sex',summary=FALSE)
+#stargazer(tab1f,type='text',title='Table 2: N twin pairs by zygosity and sex, whole sample and subset with fTCD',summary=FALSE)
 mycaption<-paste0('Table ',tabnum,': N twin pairs by zygosity and sex')
 #tab1f %>% kable(booktabs = T, caption = mycaption) %>% 
 #  kable_styling()
@@ -356,9 +363,9 @@ The analysis of the animation task data consists of a standard sequence of proce
 
 In our previous report of data from this sample (Wilson & Bishop, 2018), we used the conventional approach for obtaining a laterality index based on the peak difference (maximum or minimum) in a period of interest, predefined as 4 to 14 seconds after the cue to speak. Our subsequent studies with adults suggested that this method is not ideal, because there are cases where the difference wave shifts from positive to negative, or vice versa, within the period of interest, and quite minor differences in size of positive and negative peaks can determine whether laterality is coded as left or right (Woodhead et al., 2018).  Accordingly, in more recent studies, we have calculated a laterality index (LI) as the mean amplitude of blood flow velocity difference in the whole period of interest. In the current dataset, the correlation between this mean-based LI and the traditional peak-based LI is very strong: Pearson correlation = 0.907, DF = 306, but the distributions differ. The split-half reliability, based on correlation of LIs from odd and even trials is closely similar to that from the original method, r = .85. The original method, however, gives a non-normal distribution of laterality indices, with a point of rarity around zero, which appears to be a spurious artefact of the method of computation.
 
-Following Wilson and Bishop (2018) we excluded data from `r nlowN` pairs where one of the twins had fewer than 12 accepted trials, as the LI is likely to be unreliable when based on such a small amount of data. In addition, data were excluded for one twin pair where one child's laterality index was more than 5 SD from the mean. 
+Following Wilson and Bishop (2018) we excluded data from `r nlowN` twin pairs where one of the twins had fewer than 12 accepted trials, as the LI is likely to be unreliable when based on such a small amount of data. In addition, data were excluded for one twin pair where one child's laterality index was more than 5 SD from the mean. 
 
-The standard error of the LI for an individual was computed from the LI obtained across individual trials. This allowed us to consider whether the LI was significantly different from zero, i.e. whether the 95% confidence interval spanned zero. Where this was the case, laterality was categorised as left or right, and where the LI was not significantly different from zero, the laterality was coded as bilateral. Note that coding of bilateral laterality can result if data are merely noisy.
+The standard error of the LI for an individual was computed from the LI obtained across individual trials. This allowed us to consider whether the child's LI was significantly different from zero, i.e. whether the 95% confidence interval spanned zero. Where this was the case, laterality was categorised as left or right, and where the LI was not significantly different from zero, the laterality was coded as bilateral. Note that coding of bilateral laterality can result if data are merely noisy.
 
 
 ## Procedure  
@@ -444,7 +451,7 @@ powertable[thisrow,1]<-paste0(Nmz,'/',Ndz)
 powertable[thisrow,2]<-aa
 powertable[thisrow,3:4]<-pars[1,1:2]
 powertable[thisrow,5]<-round(pars[1,1]-1.96*pars[1,2],3)
-#Find the value of a2 where lower CI is just above 0
+#Find the value of a2 where lower CI is just above 0 - this would be 95% power!
 if (powertable[thisrow,5]<0){thisaa<-thisrow}
 }
   myaa<-c(myaa,powertable[(thisaa+1),2])
@@ -453,12 +460,43 @@ if (powertable[thisrow,5]<0){thisaa<-thisrow}
 #These correspond to smallest values of aa detectable as different from zero with this sample size
 
 ```
+
+```{r batespower, echo=FALSE, include=FALSE}
+#Script for power analysis from Tim Bates
+smallN<-nrow(doubledata2)/2 #N pairs for laterality index; n= 141
+bigN<-nrow(doubledata)/2 #N pair for handedeness; n = 194
+
+tmp = umx_make_TwinData(nMZpairs = 2000, nDZpairs = 2000,  AA = .25, CC = 0, varNames = "var", mean = 0, empirical = TRUE)
+mzData = subset(tmp, zygosity == "MZ") #did not work, but substituted 2 lines below
+dzData = subset(tmp, zygosity == "DZ")
+
+
+ace = umxACE(selDVs = "var", sep = "_T", mzData = mzData, dzData = dzData, tryHard = "yes")
+ae = umxModify(ace, "c_r1c1", name="ae", tryHard = "yes")
+nullModel = umxModify(ae, "a_r1c1", name = "e", tryHard = "yes")
+
+power.table<-mxPowerSearch(trueModel = ae, falseModel = nullModel, method = "ncp")
+power.table
+write_csv(power.table,'powertable.csv')
+
+w<-max(which(power.table$N<smallN))
+power.smallN25<-round(power.table[w,2],2)
+w<-max(which(power.table$N<bigN))
+power.bigN25<-round(power.table[w,2],2)
+
+
+#Lines below:These precise power estimates seem wrong: the same regardless of N. Ignore for now.
+#mypower.small<-mxPower(trueModel = ae, falseModel = nullModel, n=smallN/2)
+#mypower.big<-mxPower(trueModel = ae, falseModel = nullModel, n=bigN/2)
+#mypower.tiny<-mxPower(trueModel = ae, falseModel = nullModel, n=50)
+```
 ## Data analysis
 1. AE modeling 
-As noted above, the usual approach to twin analysis involves decomposing variance of a phenotype into components attributed to additive genetic (a), common (shared) environment (c) and nonshared environment (e). This decomposition is typically implemented using structural equation modeling with maximum likelihood estimates (Rijsdijk & Sham, 2002), which make it possible to test whether the data meet underlying assumptions, to compare fit of different models, and to obtain standard errors of estimates. Large samples are needed to accurately estimate additive genetic (a^2^), shared environmental (c^2^) influences, both of which lead to positive covariance between two members of both MZ and DZ pairs: they are distinguished by the fact that genetic influence leads to greater covariance for MZ than for DZ twins. In the context of laterality, however, prior studies have found shared environmental influences to be negligible in adequately powered twin studies, and it is safe to ignore the c^2^ term. This simplifies the analysis, making it possible to detect genetic effects with smaller samples, as any positive correlation between twins and their cotwins can be interpreted as a genetic effect. An AE model was fitted to the raw data using the OpenMx package (Neale et al, 2016).
+As noted above, the usual approach to twin analysis involves decomposing variance of a phenotype into components attributed to additive genetic (a), common (shared) environment (c) and nonshared environment (e). This decomposition is typically implemented using structural equation modeling with maximum likelihood estimates (Rijsdijk & Sham, 2002), which make it possible to test whether the data meet underlying assumptions, to compare fit of different models, and to obtain standard errors of estimates. Large samples are needed to accurately estimate additive genetic (a^2^), shared environmental (c^2^) influences, both of which lead to positive covariance between two members of both MZ and DZ pairs: they are distinguished by the fact that genetic influence leads to greater covariance for MZ than for DZ twins. In the context of laterality, however, prior studies have found shared environmental influences to be negligible in adequately powered twin studies, and it is safe to ignore the c^2^ term (Medland et al.,2006, 2009). This simplifies the analysis, making it possible to detect genetic effects with smaller samples, as any positive correlation between twins and their cotwins can be interpreted as a genetic effect. An AE model was fitted to the raw data using two R packages (version 3.6, R Core Team, 2019):  OpenMx package (Neale et al, 2016) with the umx helper package used for the nonparametric handedness data (Bates, Maes, & Neale, 2017).
 
-2. Power analysis 
-A power analysis using a modified version of the powerFun function in OpenMx showed that for the larger sample of twins for whom handedness data were available, there is power to detect heritability, a^2^, in an AE model of `r round(myaa[1]^2,2)` or greater, and for the smaller sample with language laterality data, an effect of `r round(myaa[2]^2,2)` or greater is detectable. Thus even the low heritability estimates reviewed in the Introduction, for handedness, structural asymmetry and dichotic listening, should be detectable with this sample size.
+2. Power analysis  
+
+A power analysis was conducted to estimate the power to detect heritability of .25 or more, using the mxPowerSearch function in OpenMx. This showed that for the larger sample of twins for whom handedness data were available, there is `r power.bigN25` power to detect heritability of .25 in an AE model, and for the smaller sample with language laterality data, power of `r power.smallN25`. Thus even the low heritability estimates reviewed in the Introduction, for handedness, structural asymmetry and dichotic listening, should be detectable with this sample size.
 
 
 
@@ -742,6 +780,56 @@ aatable[mytask,6]<-round(pars[1,1]^2,2)
 }
 
 ```
+
+```{r batesmultivariate, echo=FALSE, include=FALSE}
+
+df = doubledata # for ease of typing
+#Need to rename columns to fit umx syntax
+mycols<-c("ehp_handedness", "qhp_handedness", "lat_index","li_cat")
+for (j in 1:length(mycols)){
+  c<-which(names(df)==mycols[j])
+  names(df)[c]<-paste0(mycols[j],'_T1')
+  name2<-paste0(mycols[j],'2')
+    cc<-which(names(df)==name2)
+  names(df)[cc]<-paste0(mycols[j],'_T2')
+}
+
+mzData = subset(df, Zygosity=='MZ')
+dzData = subset(df, Zygosity=='DZ')
+
+# Test for genetic influence on laterality index
+m1 = umxACE("lat_index", selDVs = "lat_index", sep="_T", mzData = mzData, dzData= dzData)
+m2 = umxModify(m1, "c_r1c1", name="ae", comparison= TRUE) #drop C term - this is our starting model
+m3 = umxModify(m2, "a_r1c1", name="e", comparison= TRUE)
+umxCompare(m2, m3)
+umxSummary(m2)
+
+# Test for genetic influence on EHP
+m1 = umxACE("EHP", selDVs = "ehp_handedness", sep="_T", mzData = mzData, dzData= dzData)
+m2 = umxModify(m1, "c_r1c1", name="ae", comparison= TRUE)
+m3 = umxModify(m2, "a_r1c1", name="e", comparison= TRUE)
+umxCompare(m2, m3)
+umxSummary(m2)
+
+# Test for genetic influence on QHP
+m1 = umxACE("QHP", selDVs = "qhp_handedness", sep="_T", mzData = mzData, dzData= dzData)
+m2 = umxModify(m1, "c_r1c1", name="ae", comparison= TRUE)
+m3 = umxModify(m2, "a_r1c1", name="e", comparison= TRUE)
+umxCompare(m2, m3)
+umxSummary(m2)
+
+
+# MV
+m1 = umxACE(selDVs = c("ehp_handedness", "qhp_handedness"), sep="_T", mzData = mzData, dzData= dzData)
+ umxSummary(m1)
+ m2 = umxModify(m1, regex = "c_r.c[1-2]", name="dropC_12", comparison= TRUE)
+ m3 = umxModify(m2, regex = "a_r.c[1-2]", name="dropA_12", comparison= TRUE)
+# 
+ umxCompare(m2, m3)
+ umxSummary(m2)
+
+
+```
 The OpenMx package was used to run an AE model with the data from the two handedness tasks and the language laterality task. It was anticipated that the model would not fit with the data because (a) the handedness data were highly non-normal, and (b) the correlations for the language laterality index were close to zero. However, a good fit was obtained for all three measures.  Heritability estimates for the two handedness measures were statistically significant and compatible with those obtained in previous studies, with values of a^2^ of `r aatable[1,6]` for the Edinburgh Handedness Inventory and `r aatable[2,6]` for the Quantification of Hand Preference task. For the language laterality index, the estimated value of a^2^ was zero.
 
 ```{r OpenMXoutputs, echo=FALSE}
@@ -788,13 +876,15 @@ for.umx[, ordDVs] <- mxFactor(for.umx[, ordDVs], levels = c(0:nlevels))
 mzData <- for.umx[for.umx$zygo ==1, ]
 dzData <- for.umx[for.umx$zygo ==2, ]
 m1 = umxACE(selDVs = selDVs, dzData = dzData, mzData = mzData, sep = '')
+m2 = umxModify(m1, update="c_r1c1",name = "drop_C")
 
-umxSummary(m1,showEstimates='std',SE=TRUE,report='markdown',RMSEA_CI=TRUE)
-aSE<-m1$output$standardErrors[nlevels] #nlevels does identify the correct row here
-Qa<-m1$output$estimate[nlevels]
+umxSummary(m2,showEstimates='std',SE=TRUE,report='markdown',RMSEA_CI=TRUE)
+aSE<-m2$output$standardErrors[nlevels] #nlevels does identify the correct row here
+Qa<-m2$output$estimate[nlevels]
 QlowCI<-(Qa-1.96*aSE)
 QhiCI<-(Qa+1.96*aSE)
 umxresult<-as.data.frame(c(Qa,aSE,QlowCI,QhiCI,Qa^2))
+
 
 return(umxresult)
 }
@@ -1148,6 +1238,8 @@ Annett, M. (1985). Left, right, hand and brain: the Right Shift Theory. Hillsdal
 
 Armour, J. A. L., Davison, A., & McManus, I. C. (2014). Genome-wide association study of handedness excludes simple genetic models. Heredity, 112(3), 221-225. doi:10.1038/hdy.2013.93
 
+Bates, T. C., Maes, H. H., & Neale, M. C. (2017). umx: Twin and Path-based Structural Equation Modeling in R. PeerJ Preprints, 5, e3354v3351. doi:10.7287/peerj.preprints.3354v1
+
 Bishop, D. V. M. (1990a). Handedness and developmental disorder. Oxford: Blackwell Scientific and Philadelphia: J.B. Lippincott.
 
 Bishop, D. V. M. (1990b). How to increase your chances of obtaining a significant association between handedness and disorder. Journal of Clinical and Experimental Ñeuropsychology, 12, 786-790. 
@@ -1182,7 +1274,7 @@ Neale, M. C., Hunter, M. D., Pritikin, J. N., Zahery, M., Brick, T. R., Kirkpatr
 
 Pritchard, V. E., Malone, S. A., Burgoyne, K., Heron-Delaney, M., Bishop, D. V. M., & Hulme, C. (2019). Stage 1 Registered Report: The relationship between handedness and language ability in children [version 1; peer review: 2 approved]. Wellcome Open Research, 4(3). doi:https://doi.org/10.12688/wellcomeopenres.15077.1
 
-R Core Team (2013). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria
+R Core Team (2019). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. URL https://www.R-project.org/.
 
 Revelle, W. (2018). psych: Procedures for Personality and Psychological Research. Northwestern University, Evanston, Illinois, USA.
 
