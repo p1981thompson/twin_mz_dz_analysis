@@ -27,10 +27,12 @@ doubledata<-  read.csv('https://osf.io/m9jph/download')
 
 #EHI analysis
 #create a file with standard format allowing us to use a function to repeat analysis across phenotypes
-pheno<-'qhp_handedness' #also can have ehp_handedness
-pheno<-'lat_index'
+#pheno<-'qhp_handedness' #also can have ehp_handedness
+pheno<-'ehp_handedness' #also can have ehp_handedness
+##pheno<-'lat_index'
 fileprefix<-'QHP'
-fileprefix<-'lat_index'
+#fileprefix<-'lat_index'
+fileprefix<-'EHI'
 mynames<-c(pheno,paste0(pheno,2))
 mycols<-which(colnames(doubledata) %in% mynames) #find which cols contain twin data
 tempdata<-data.frame(matrix(vector(), nrow(doubledata), 3,
@@ -80,11 +82,11 @@ mu<-0
 
 ```{r iterated.estimates,echo=FALSE,warning=FALSE,message=FALSE,error=FALSE}
 umx_set_auto_plot(FALSE)
-niters<-1000
-simresults<-data.frame(matrix(NA,nrow=niters,ncol=5))
-colnames(simresults)<-c('a','apropall','se','seSuspect','infoDefinite')
+niters<-4000
+simresults<-data.frame(matrix(NA,nrow=niters,ncol=4))
+colnames(simresults)<-c('a','apropall','se','infoDefinite')
 for (i in 1:niters){
-  print(i)
+ if(i/100==round(i/100,0)) {print(i)}
 simdatm<-data.frame(mvrnorm(n=nm,mu=c(mu,mu),Sigmam))
 simdatd<-data.frame(mvrnorm(n=nd,mu=c(mu,mu),Sigmad))
 colnames(simdatm)<-c('X1','X2')
@@ -99,7 +101,7 @@ a2estM <- summ$Estimate[2]^2/(summ$Estimate[2]^2+summ$Estimate[3]^2) #proportion
 simresults$apropall[i]<-a2estM #proportion estimate of a2
 simresults$a[i]<-summ$Estimate[2] # a umx est
 simresults$se[i]<-summ$Std.Error[2] #umx SE
-simresults$seSuspect[i]<-summary(m2)$seSuspect
+
 simresults$infoDefinite[i]<-summary(m2)$infoDefinite
 } 
 filename<-paste0(fileprefix,'bootstraps_umx_',niters,'.csv')
