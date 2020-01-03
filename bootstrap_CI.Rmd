@@ -1,0 +1,132 @@
+---
+title: "bootstrapCI"
+author: "DVM Bishop"
+date: "01/01/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(MASS)
+options(scipen=999)
+require(tidyverse)
+require(OpenMx)
+require(umx)
+```
+
+## Using bootstrapping for confidence intervals around a2
+
+This is a separate module created in response to reviewer request.
+We load in the data from from OSF, which are same as used in heritability lat writeup.Rmd
+
+```{r readdata}
+doubledata<-  read.csv('https://osf.io/m9jph/download') 
+```
+
+```{r getparameters}
+
+#EHI analysis
+#create a file with standard format allowing us to use a function to repeat analysis across phenotypes
+#pheno<-'qhp_handedness' #also can have ehp_handedness
+pheno<-'ehp_handedness' #also can have ehp_handedness
+##pheno<-'lat_index'
+fileprefix<-'QHP'
+#fileprefix<-'lat_index'
+fileprefix<-'EHI'
+mynames<-c(pheno,paste0(pheno,2))
+mycols<-which(colnames(doubledata) %in% mynames) #find which cols contain twin data
+tempdata<-data.frame(matrix(vector(), nrow(doubledata), 3,
+                dimnames=list(c(), c("X1", "X2", "zyg"))))
+tempdata$X1<-doubledata[,mycols[1]]
+tempdata$X2<-doubledata[,mycols[2]]
+tempdata$zyg<-doubledata$MZDZ
+#remove rows with NA
+w<-intersect(which(is.na(tempdata$X1)),which(is.na(tempdata$X2)))
+if(length(w)>0){
+tempdata<-tempdata[-w,]
+}
+#compute correlation for MZ and DZ
+thismz<-filter(tempdata,zyg==1)
+thisdz<-filter(tempdata,zyg==2)
+
+covd<-cov(thisdz$X1,thisdz$X2,use= "pairwise.complete.obs")
+covm<-cov(thismz$X1,thismz$X2,use= "pairwise.complete.obs")
+
+
+cord<-cor(thisdz$X1,thisdz$X2,use= "pairwise.complete.obs")
+corm<-cor(thismz$X1,thismz$X2,use= "pairwise.complete.obs")
+#Now do nsim runs with simulated data and retain the estimates
+
+nd<-nrow(thisdz)/2
+nm<-nrow(thismz)/2
+mud<-mean(thisdz$X1) #because of double entry ,this has both twin 1 and 2 included
+mum<-mean(thismz$X1)
+vard<-var(thisdz$X1)
+varm<-var(thismz$X1)
+Sigmad=matrix(c(vard,covd,covd,vard),nrow=2)
+Sigmam=matrix(c(varm,covm,covm,varm),nrow=2)
+
+#take communal variance and mu
+mu <- mean(tempdata$X1)
+var<- var(tempdata$X1)
+Sigmad=matrix(c(var,covd,covd,var),nrow=2)
+Sigmam=matrix(c(var,covm,covm,var),nrow=2)
+
+#using correlations instead of covariances
+Sigmad=matrix(c(1,cord,cord,1),nrow=2)
+Sigmam=matrix(c(1,corm,corm,1),nrow=2)
+mu<-0
+```
+# We use n, mean and Sigma to To parallel analysis of real data
+# Will simulate with single entry and then create double entry file to run it
+
+```{r iterated.estimates,echo=FALSE,warning=FALSE,message=FALSE,error=FALSE}
+umx_set_auto_plot(FALSE)
+niters<-4000
+simresults<-data.frame(matrix(NA,nrow=niters,ncol=4))
+colnames(simresults)<-c('a','apropall','se','infoDefinite')
+for (i in 1:niters){
+ if(i/100==round(i/100,0)) {print(i)}
+simdatm<-data.frame(mvrnorm(n=nm,mu=c(mu,mu),Sigmam))
+simdatd<-data.frame(mvrnorm(n=nd,mu=c(mu,mu),Sigmad))
+colnames(simdatm)<-c('X1','X2')
+colnames(simdatd)<-c('X1','X2')
+
+
+# Test for genetic influence on laterality index
+m1 = umxACE("X", selDVs = "X", sep="", mzData = simdatm, dzData= simdatd)
+m2 = umxModify(m1, "c_r1c1", name="ae", comparison= TRUE) #drop C term - this is our starting model
+summ<-summary(m2)$parameters
+a2estM <- summ$Estimate[2]^2/(summ$Estimate[2]^2+summ$Estimate[3]^2) #proportion of sumsq assoc with a2
+simresults$apropall[i]<-a2estM #proportion estimate of a2
+simresults$a[i]<-summ$Estimate[2] # a umx est
+simresults$se[i]<-summ$Std.Error[2] #umx SE
+
+simresults$infoDefinite[i]<-summary(m2)$infoDefinite
+} 
+filename<-paste0(fileprefix,'bootstraps_umx_',niters,'.csv')
+
+write.csv(simresults,filename)
+
+goodresults<-simresults[simresults$infoDefinite==T,]
+goodresults$a2<-goodresults$a^2
+
+q1<-quantile(goodresults$a2,.05)
+q2<-quantile(goodresults$a2,.95)
+print(paste('95%CI for a^2 = ',round(q1,3),'to',round(q2,3)))
+
+q3<-quantile(goodresults$apropall,.05)
+q4<-quantile(goodresults$apropall,.95)
+print(paste('95%CI for apropall = ',round(q3,3),'to',round(q4,3)))
+
+meana<-mean(goodresults$a)
+meanse<-mean(goodresults$se)
+print(paste('mean  a  = ',meana))
+print(paste('mean estimated SE for a  = ',meanse))
+computedlower<-round(meana-1.96*meanse,3)
+computedupper<-round(meana+1.96*meanse,3)
+print(paste('Computed 95% CI for a = ',computedlower,'to',computedupper))
+print(paste('squared Computed 95% CI for a = ',computedlower^2,'to',computedupper^2))
+       
+```
+
