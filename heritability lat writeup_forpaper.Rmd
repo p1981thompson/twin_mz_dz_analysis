@@ -539,7 +539,21 @@ vline=0
 g3<-makescatter(mytitle,xpos,ypos,filetitle,vline,mylabeldf,mylabelbit)
 h3<-makehistos(mytitle)
 
+#add histogram for peak measure
+doubledata$thisx<-doubledata$peakLI
+doubledata$thisy<-doubledata$peakLI2
+w<-which(doubledata$doppout==1) #rather than using doubledata2, we just create column which 
+#turns LIs to NA for those with too few trials
+doubledata$peakindex[w]<-NA #this removes outlier value 
+doubledata$peakindex2[w]<-NA
+thismz<-filter(doubledata,MZDZ==1)
+thisdz<-filter(doubledata,MZDZ==2)
+mytitle<-'Laterality Index (peak fTCD)'
 
+filetitle<-'LIplotpeak.png'
+vline=0
+h4<-makehistos(mytitle)
+ggsave("plots/peakLI.png",width=4,height=4,dpi=300)#save most recent plot
 ###########################################################################################
 
 ```
@@ -629,6 +643,8 @@ shapiro.test(doubledata$qhp_handedness)
 qqnorm(doubledata$qhp_handedness)
 shapiro.test(doubledata$lat_index)
 qqnorm(doubledata$lat_index)
+shapiro.test(doubledata$peakLI)
+qqnorm(doubledata$peakLI) #normality test added for peak LI
 shapiro.test(doubledata$taskssum)
 qqnorm(doubledata$taskssum)
 hist(doubledata$ehp_handedness,breaks=20)
@@ -693,20 +709,25 @@ aatable[mytask,6]<-round(pars[1,1]^2,2)
 
 
 ```{r batesunivariate, echo=FALSE, include=FALSE}
+#Including formatting into a nice table with everything in it
+uutable<-data.frame(matrix(NA,nrow=(length(mxcols)/2),ncol=9))
+colnames(uutable)<-c('Measure','N MZ pair','N DZ pair','rMZ','rDZ','a2','95% CI','Fitindex1','Fitindex2')
+#NB 95CI will be done from bootstrap_CI.Rmd
+
 umx_set_auto_plot(FALSE)
 #umx gives v slightly different estimates of a2 than the standard ACE above.
 #I am using the OpenMx versions 
 #We'll compare with Somers et al, so use a binary category from the peak LI
-doubledata$peak2cat <-doubledata$peak_latcat
-w<-which(doubledata$peak2cat<0)
-doubledata$peak2cat[w]<-0 #combines bilateral and R
-doubledata$peak2cat2 <-doubledata$peak_latcat2
-w<-which(doubledata$peak2cat2<0)
-doubledata$peak2cat2[w]<-0 #combines bilateral and R
+doubledata$peakcatbinary <-doubledata$peak_latcat
+w<-which(doubledata$peakcatbinary<0)
+doubledata$peakcatbinary[w]<-0 #combines bilateral and R
+doubledata$peakcatbinary2 <-doubledata$peak_latcat2
+w<-which(doubledata$peakcatbinary2<0)
+doubledata$peakcatbinary2[w]<-0 #combines bilateral and R
 
 df = doubledata # for ease of typing
 #Need to rename columns to fit umx syntax
-mycols<-c("ehp_handedness", "qhp_handedness", "lat_index","peakLI","peak2cat","mean_left_flow","mean_right_flow")
+mycols<-c("ehp_handedness", "qhp_handedness", "lat_index","peakLI","peakcatbinary","mean_left_flow","mean_right_flow")
 for (j in 1:length(mycols)){
   c<-which(names(df)==mycols[j])
   names(df)[c]<-paste0(mycols[j],'_T1')
@@ -754,7 +775,7 @@ summary(m2)$parameters
 
 # Test for genetic influence on peak laterality category (as in Somers et al - just binary)
 
-m1 = umxACE("peak2cat", selDVs = "peak2cat", sep="_T", mzData = mzData, dzData= dzData)
+m1 = umxACE("peakcatbinary", selDVs = "peakcatbinary", sep="_T", mzData = mzData, dzData= dzData)
 m2 = umxModify(m1, "c_r1c1", name="ae", comparison= TRUE) #drop C term - this is our starting model
 m3 = umxModify(m2, "a_r1c1", name="e", comparison= TRUE)
 umxCompare(m2, m3)
